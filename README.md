@@ -110,3 +110,13 @@ SolicitacaoAcademica o-- Aluno
 SolicitacaoAcademica o-- SetorAcademico
 
 EstadoSolicitacao --> SolicitacaoAcademica
+```
+## Integrantes do Grupo
+
+| Nome Completo                     | GitHub |
+|----------------------------------|--------|
+| Carlos Eduardo Bezerra Santos    | https://github.com/carlossan25c |
+| Raimundo Sebastiao Pereira Neto  | https://github.com/Raimundo06 |
+| Lucas Daniel Dias de Sousa       | https://github.com/Lucasd11 |
+| Davi Maia Soares                 | https://github.com/davimso |
+| José Luiz de Lima Mendes         | https://github.com/J-Luiz-L |
