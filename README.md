@@ -1,138 +1,112 @@
-# Sistema-SGPAD-
-Um sistema que modela processos de atendimento (ex.: suporte técnico, chamados, solicitações internas), onde o fluxo, as regras, as ações e os responsáveis variam dinamicamente conforme o tipo de processo, prioridade, estado e políticas configuradas.
+# Sistema de Gestão de Solicitações Acadêmicas (SGSA)
 
-## Diagrama UML de Classes
+Sistema orientado a objetos para o gerenciamento de solicitações acadêmicas em instituições de ensino superior. O sistema modela o ciclo de vida de solicitações realizadas por alunos, considerando diferentes tipos de pedidos, regras acadêmicas e estados de processamento, com foco em extensibilidade, clareza de domínio e boas práticas de Programação Orientada a Objetos.
 
-```mermaid
-classDiagram
-
-class ProcessoAtendimento {
-  <<abstract>>
-  -id : int
-  -titulo : str
-  -descricao : str
-  -prioridade : int
-  -estado : EstadoProcesso
-  -regras : List~RegraNegocio~
-  -agente : Agente
-  -usuario : Usuario
-  +executar() : void
-  +adicionarRegra(regra: RegraNegocio) : void
-  +alterarEstado(estado: EstadoProcesso) : void
-}
-
-class EstadoProcesso {
-  <<abstract>>
-  +executar(processo: ProcessoAtendimento) : void
-}
-
-class RegraNegocio {
-  <<abstract>>
-  +avaliar(processo: ProcessoAtendimento) : void
-}
-
-class Acao {
-  <<abstract>>
-  +executar(processo: ProcessoAtendimento) : void
-}
-
-class AuditavelMixin {
-  +registrarAuditoria() : void
-}
-
-class LogavelMixin {
-  +registrarLog() : void
-}
-
-class ProcessoSuporte
-class ProcessoFinanceiro
-class ProcessoAcademico
-
-class EstadoAberto
-class EstadoEmAnalise
-class EstadoFinalizado
-
-class RegraPrioridade
-class RegraPrazo
-class RegraEscalonamento
-
-class NotificarUsuario
-class EscalarProcesso
-
-class Agente {
-  -id : int
-  -nome : str
-  -nivel : str
-}
-
-class Usuario {
-  -id : int
-  -nome : str
-  -email : str
-}
-
-ProcessoAtendimento <|-- ProcessoSuporte
-ProcessoAtendimento <|-- ProcessoFinanceiro
-ProcessoAtendimento <|-- ProcessoAcademico
-
-EstadoProcesso <|-- EstadoAberto
-EstadoProcesso <|-- EstadoEmAnalise
-EstadoProcesso <|-- EstadoFinalizado
-
-RegraNegocio <|-- RegraPrioridade
-RegraNegocio <|-- RegraPrazo
-RegraNegocio <|-- RegraEscalonamento
-
-Acao <|-- NotificarUsuario
-Acao <|-- EscalarProcesso
-
-AuditavelMixin <|-- ProcessoSuporte
-LogavelMixin <|-- ProcessoSuporte
-
-ProcessoAtendimento *-- EstadoProcesso
-ProcessoAtendimento *-- RegraNegocio
-
-ProcessoAtendimento o-- Agente
-ProcessoAtendimento o-- Usuario
-
-RegraNegocio --> Acao
-EstadoProcesso --> ProcessoAtendimento
-```
 ---
 
 ## Visão Geral do Projeto
-Este projeto tem como objetivo o desenvolvimento de um sistema orientado a objetos para o gerenciamento de processos de atendimento, modelando fluxos de execução, regras de negócio e variações de comportamento de forma extensível, coesa e alinhada aos princípios da Programação Orientada a Objetos.
 
-O sistema foi concebido para consolidar, de forma prática, os conceitos fundamentais e avançados de POO, incluindo abstração, herança, polimorfismo, encapsulamento, composição, agregação, princípios SOLID e padrões de projeto, conforme os requisitos estabelecidos na disciplina.
+Este projeto tem como objetivo aplicar, de forma prática, os principais conceitos da Programação Orientada a Objetos no desenvolvimento de um sistema de domínio acadêmico realista. A solução foi projetada para demonstrar abstração, herança, polimorfismo, encapsulamento, composição, agregação, princípios SOLID e padrões de projeto.
+
+O sistema permite que alunos realizem solicitações acadêmicas que são analisadas por setores responsáveis, seguindo regras institucionais e percorrendo diferentes estados ao longo de seu ciclo de vida.
 
 ---
 
 ## Descrição Detalhada do Domínio
-O domínio do sistema consiste no gerenciamento de processos de atendimento que representam solicitações realizadas por usuários e tratadas por agentes responsáveis. Cada processo percorre um fluxo próprio, sendo governado por regras de negócio que determinam seu comportamento ao longo do ciclo de vida.
 
-Um processo de atendimento possui:
-- um tipo específico (suporte, financeiro ou acadêmico);
-- um estado atual, que influencia diretamente suas ações possíveis;
-- um conjunto de regras de negócio aplicáveis;
-- agentes responsáveis pelo atendimento;
-- um usuário solicitante.
+O domínio do sistema consiste no gerenciamento de solicitações acadêmicas realizadas por alunos de uma instituição de ensino superior. Essas solicitações representam processos formais que necessitam de análise e decisão por parte de setores acadêmicos específicos.
 
-Os processos podem sofrer alterações de estado, disparar ações automáticas e aplicar regras distintas conforme seu tipo, prioridade e contexto de execução. O foco do sistema está no comportamento dos objetos e na interação entre eles, e não apenas no armazenamento de dados.
+Cada solicitação acadêmica:
+- é iniciada por um aluno;
+- pertence a um tipo específico de solicitação;
+- possui um estado atual que define seu comportamento;
+- está associada a regras acadêmicas que determinam sua validade;
+- é analisada por um setor acadêmico responsável.
+
+As solicitações percorrem um fluxo bem definido, passando por estados como aberta, em análise e finalizada. O comportamento do sistema varia conforme o tipo de solicitação, o estado atual e as regras aplicadas.
 
 ---
 
 ## Justificativa da Complexidade do Sistema
-O sistema proposto apresenta complexidade superior a um simples CRUD, uma vez que incorpora múltiplos fluxos de execução e regras de negócio dinâmicas. O comportamento do sistema varia conforme o tipo do processo, o estado em que se encontra e as regras associadas, exigindo decisões em tempo de execução.
 
-A utilização de Programação Orientada a Objetos é essencial para:
-- reduzir o acoplamento entre componentes;
+O sistema proposto apresenta complexidade superior a aplicações simples baseadas em operações CRUD, pois envolve múltiplos fluxos de execução, regras acadêmicas e variação de comportamento em tempo de execução.
+
+A complexidade do domínio justifica o uso da Programação Orientada a Objetos para:
+- encapsular regras de negócio;
+- reduzir acoplamento entre componentes;
 - permitir a extensão do sistema sem modificações estruturais;
-- evitar estruturas condicionais extensas e de difícil manutenção;
-- garantir clareza, reutilização e manutenibilidade do código.
+- evitar estruturas condicionais extensas e de difícil manutenção.
 
-Dessa forma, a complexidade do domínio justifica plenamente o uso de abstrações, herança, polimorfismo e composição.
+Dessa forma, abstração, herança, polimorfismo e composição tornam-se fundamentais para a correta modelagem do problema.
 
 ---
 
+## Diagrama UML de Classes
 
+O diagrama UML de classes a seguir representa a estrutura do sistema, destacando as hierarquias, associações, composições e agregações entre as entidades do domínio acadêmico.
 
+```mermaid
+classDiagram
+
+class SolicitacaoAcademica {
+  <<abstract>>
+  -id : int
+  -dataCriacao : date
+  -estado : EstadoSolicitacao
+  -regras : List~RegraSolicitacao~
+  -aluno : Aluno
+  -setor : SetorAcademico
+  +executar() : void
+  +alterarEstado(estado: EstadoSolicitacao) : void
+}
+
+class SolicitacaoTrancamento
+class SolicitacaoDeclaracao
+class SolicitacaoRevisaoNota
+
+class EstadoSolicitacao {
+  <<abstract>>
+  +executar(solicitacao: SolicitacaoAcademica) : void
+}
+
+class EstadoAberta
+class EstadoEmAnalise
+class EstadoFinalizada
+
+class RegraSolicitacao {
+  <<abstract>>
+  +avaliar(solicitacao: SolicitacaoAcademica) : bool
+}
+
+class RegraPrazo
+class RegraElegibilidade
+
+class Aluno {
+  -matricula : str
+  -nome : str
+  -curso : str
+}
+
+class SetorAcademico {
+  -nome : str
+  -responsavel : str
+}
+
+SolicitacaoAcademica <|-- SolicitacaoTrancamento
+SolicitacaoAcademica <|-- SolicitacaoDeclaracao
+SolicitacaoAcademica <|-- SolicitacaoRevisaoNota
+
+EstadoSolicitacao <|-- EstadoAberta
+EstadoSolicitacao <|-- EstadoEmAnalise
+EstadoSolicitacao <|-- EstadoFinalizada
+
+RegraSolicitacao <|-- RegraPrazo
+RegraSolicitacao <|-- RegraElegibilidade
+
+SolicitacaoAcademica *-- EstadoSolicitacao
+SolicitacaoAcademica *-- RegraSolicitacao
+
+SolicitacaoAcademica o-- Aluno
+SolicitacaoAcademica o-- SetorAcademico
+
+EstadoSolicitacao --> SolicitacaoAcademica
