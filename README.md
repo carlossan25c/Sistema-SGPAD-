@@ -43,13 +43,8 @@ Dessa forma, abstração, herança, polimorfismo e composição tornam-se fundam
 
 ## Diagrama UML de Classes
 
-O diagrama UML de classes a seguir representa a estrutura do sistema, destacando as hierarquias, associações, composições e agregações entre as entidades do domínio acadêmico.
-
+```mermaid
 classDiagram
-```
-%% =======================
-%% DOMÍNIO
-%% =======================
 
 class SolicitacaoAcademica {
   <<abstract>>
@@ -95,10 +90,6 @@ class SetorAcademico {
   -responsavel : str
 }
 
-%% =======================
-%% PERSISTÊNCIA
-%% =======================
-
 class DatabaseConnection {
   +getConnection() : Connection
 }
@@ -113,10 +104,6 @@ class SolicitacaoRepository {
   +salvar(solicitacao: SolicitacaoAcademica) : void
 }
 
-%% =======================
-%% HERANÇAS
-%% =======================
-
 SolicitacaoAcademica <|-- SolicitacaoTrancamento
 SolicitacaoAcademica <|-- SolicitacaoDeclaracao
 SolicitacaoAcademica <|-- SolicitacaoRevisaoNota
@@ -128,10 +115,6 @@ EstadoSolicitacao <|-- EstadoFinalizada
 RegraSolicitacao <|-- RegraPrazo
 RegraSolicitacao <|-- RegraElegibilidade
 
-%% =======================
-%% RELACIONAMENTOS DOMÍNIO
-%% =======================
-
 SolicitacaoAcademica *-- EstadoSolicitacao
 SolicitacaoAcademica *-- RegraSolicitacao
 
@@ -140,15 +123,34 @@ SolicitacaoAcademica o-- SetorAcademico
 
 EstadoSolicitacao --> SolicitacaoAcademica
 
-%% =======================
-%% RELACIONAMENTOS PERSISTÊNCIA
-%% =======================
-
 AlunoRepository --> Aluno
 SolicitacaoRepository --> SolicitacaoAcademica
 
 AlunoRepository --> DatabaseConnection
 SolicitacaoRepository --> DatabaseConnection
+```
+## Estrutura de código
+```
+sgsa/
+│
+├── main.py
+├── database.db            # gerado automaticamente
+│
+├── domain/
+│   ├── __init__.py
+│   ├── aluno.py
+│   ├── setor.py
+│   ├── estado.py
+│   ├── regra.py
+│   └── solicitacao.py
+│
+├── persistence/
+│   ├── __init__.py
+│   ├── connection.py
+│   ├── aluno_repository.py
+│   └── solicitacao_repository.py
+│
+└── README.md
 ```
 ## Integrantes do Grupo
 
