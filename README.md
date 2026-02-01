@@ -45,8 +45,11 @@ Dessa forma, abstração, herança, polimorfismo e composição tornam-se fundam
 
 O diagrama UML de classes a seguir representa a estrutura do sistema, destacando as hierarquias, associações, composições e agregações entre as entidades do domínio acadêmico.
 
-```mermaid
 classDiagram
+```
+%% =======================
+%% DOMÍNIO
+%% =======================
 
 class SolicitacaoAcademica {
   <<abstract>>
@@ -92,6 +95,28 @@ class SetorAcademico {
   -responsavel : str
 }
 
+%% =======================
+%% PERSISTÊNCIA
+%% =======================
+
+class DatabaseConnection {
+  +getConnection() : Connection
+}
+
+class AlunoRepository {
+  +criarTabela() : void
+  +salvar(aluno: Aluno) : void
+}
+
+class SolicitacaoRepository {
+  +criarTabela() : void
+  +salvar(solicitacao: SolicitacaoAcademica) : void
+}
+
+%% =======================
+%% HERANÇAS
+%% =======================
+
 SolicitacaoAcademica <|-- SolicitacaoTrancamento
 SolicitacaoAcademica <|-- SolicitacaoDeclaracao
 SolicitacaoAcademica <|-- SolicitacaoRevisaoNota
@@ -103,6 +128,10 @@ EstadoSolicitacao <|-- EstadoFinalizada
 RegraSolicitacao <|-- RegraPrazo
 RegraSolicitacao <|-- RegraElegibilidade
 
+%% =======================
+%% RELACIONAMENTOS DOMÍNIO
+%% =======================
+
 SolicitacaoAcademica *-- EstadoSolicitacao
 SolicitacaoAcademica *-- RegraSolicitacao
 
@@ -110,6 +139,16 @@ SolicitacaoAcademica o-- Aluno
 SolicitacaoAcademica o-- SetorAcademico
 
 EstadoSolicitacao --> SolicitacaoAcademica
+
+%% =======================
+%% RELACIONAMENTOS PERSISTÊNCIA
+%% =======================
+
+AlunoRepository --> Aluno
+SolicitacaoRepository --> SolicitacaoAcademica
+
+AlunoRepository --> DatabaseConnection
+SolicitacaoRepository --> DatabaseConnection
 ```
 ## Integrantes do Grupo
 
