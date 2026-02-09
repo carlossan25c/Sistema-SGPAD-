@@ -38,119 +38,119 @@ Cada solicitação:
 
 ```mermaid
 classDiagram
+    %% =========================
+    %% Usuários
+    %% =========================
     class Usuario {
         - nome: str
         - email: str
     }
-
     class Aluno {
         - matricula: str
         - curso: Curso
+        - historico: Historico
     }
-
     class Professor {
         - siape: str
         - disciplinas: List<Disciplina>
     }
-
     Usuario <|-- Aluno
     Usuario <|-- Professor
 
+    %% =========================
+    %% Domínio Acadêmico
+    %% =========================
     class Curso {
         - nome: str
         - disciplinas: List<Disciplina>
     }
-
     class Disciplina {
         - codigo: str
         - cargaHoraria: int
     }
-
     class Historico {
         - disciplinas: List<Disciplina>
         - notas: Dict
     }
 
+    Aluno --> Curso
+    Aluno --> Historico
+    Curso --> Disciplina
+    Historico --> Disciplina
+
+    %% =========================
+    %% Solicitações
+    %% =========================
     class Solicitacao {
         <<abstract>>
         - aluno: Aluno
         - status: str
         + validar(): bool
     }
-
     class SolicitacaoTrancamento {
-        + validar(): bool
+        - disciplina: Disciplina
     }
-
     class SolicitacaoMatricula {
-        + validar(): bool
+        - disciplina: Disciplina
     }
-
     class SolicitacaoColacao {
-        + validar(): bool
+        - curso: Curso
     }
-
     Solicitacao <|-- SolicitacaoTrancamento
     Solicitacao <|-- SolicitacaoMatricula
     Solicitacao <|-- SolicitacaoColacao
 
+    %% =========================
+    %% Regras (Strategy)
+    %% =========================
     class Regra {
         <<interface>>
         + validar(solicitacao: Solicitacao): bool
     }
-
-    class RegraPrazo {
-        + validar(solicitacao: Solicitacao): bool
-    }
-
-    class RegraElegibilidade {
-        + validar(solicitacao: Solicitacao): bool
-    }
-
-    class RegraCreditos {
-        + validar(solicitacao: Solicitacao): bool
-    }
-
+    class RegraPrazo
+    class RegraElegibilidade
+    class RegraCreditos
     Regra <|.. RegraPrazo
     Regra <|.. RegraElegibilidade
     Regra <|.. RegraCreditos
-
     Solicitacao --> Regra
 
-    class SolicitaçãoService {
+    %% =========================
+    %% Serviços
+    %% =========================
+    class SolicitacaoService {
         + criarSolicitacao()
         + aplicarRegras()
         + mudarEstado()
     }
-
     class NotificacaoService {
         + notificarSetor()
     }
-
-    SolicitaçãoService --> Solicitacao
-    SolicitaçãoService --> Regra
+    SolicitacaoService --> Solicitacao
+    SolicitacaoService --> Regra
     NotificacaoService --> Usuario
 
 ```
 ## Estrutura de código
 ```
-Sistema-SGPAD/
+Sistema-SGSA/
 │
-├── domain/                # Entidades e regras de negócio
+├── domain/                # Entidades de negócio
 │   ├── aluno.py
 │   ├── professor.py
 │   ├── curso.py
 │   ├── disciplina.py
-│   ├── solicitacao.py     # Classe abstrata
+│   ├── solicitacao.py
 │   ├── solicitacao_trancamento.py
 │   ├── solicitacao_matricula.py
 │   ├── solicitacao_colacao.py
-│   ├── historico.py
-│   └── regras/            # Estratégias de validação
-│       ├── regra_base.py
-│       ├── regra_prazo.py
-│       ├── regra_elegibilidade.py
-│       └── regra_creditos.py
+│   └── historico.py
+│
+├── rules/                 # Estratégias de validação (Strategy)
+│   ├── regra_base.py
+│   ├── regra_prazo.py
+│   ├── regra_elegibilidade.py
+│   └── regra_creditos.py
 │
 ├── application/           # Serviços e casos de uso
 │   ├── solicitacao_service.py
@@ -165,11 +165,12 @@ Sistema-SGPAD/
 ├── tests/                 # Testes automatizados
 │   ├── test_aluno.py
 │   ├── test_solicitacao.py
-│   ├── test_regras.py
+│   ├── test_rules.py
 │   └── test_services.py
 │
 ├── main.py                # Ponto de entrada
 └── README.md              # Documentação
+
 
 ```
 
