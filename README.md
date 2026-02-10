@@ -53,7 +53,6 @@ classDiagram
     }
     class Professor {
         - siape: str
-        - disciplinas: List<Disciplina>
     }
     Usuario <|-- Aluno
     Usuario <|-- Professor
@@ -63,17 +62,14 @@ classDiagram
     %% =========================
     class Curso {
         - nome: str
-        - disciplinas: List<Disciplina>
     }
     class Disciplina {
         - codigo: str
         - cargaHoraria: int
     }
     class Historico {
-        - disciplinas: Dict<Disciplina, float>
         + total_creditos(): int
     }
-
     Aluno --> Curso
     Aluno --> Historico
     Curso --> Disciplina
@@ -89,18 +85,13 @@ classDiagram
         + validar(): bool
         + mudar_estado(novo_estado: str)
     }
-    class SolicitacaoTrancamento {
-        - disciplina: Disciplina
-    }
-    class SolicitacaoMatricula {
-        - disciplina: Disciplina
-    }
-    class SolicitacaoColacao {
-        - curso: Curso
-    }
+    class SolicitacaoTrancamento
+    class SolicitacaoMatricula
+    class SolicitacaoColacao
     Solicitacao <|-- SolicitacaoTrancamento
     Solicitacao <|-- SolicitacaoMatricula
     Solicitacao <|-- SolicitacaoColacao
+    Solicitacao --> Aluno
 
     %% =========================
     %% Regras (Strategy)
@@ -124,15 +115,11 @@ classDiagram
         + criar_solicitacao(tipo, aluno, alvo)
         + aplicar_regras(solicitacao, regras)
     }
-    class NotificacaoService {
-        + notificar_setor(solicitacao)
-    }
-    class RelatorioService {
-        + gerar_relatorio(solicitacoes)
-    }
+    class NotificacaoService
+    class RelatorioService
     SolicitacaoService --> Solicitacao
     SolicitacaoService --> Regra
-    NotificacaoService --> Usuario
+    NotificacaoService --> Solicitacao
     RelatorioService --> Solicitacao
 
     %% =========================
@@ -147,8 +134,14 @@ classDiagram
         + listar(): List<Solicitacao>
     }
     class db_config {
-        DATABASE: Dict
+        + get_connection()
+        + init_db()
     }
+    RepositorioAluno --> Aluno
+    RepositorioSolicitacao --> Solicitacao
+    RepositorioAluno --> db_config
+    RepositorioSolicitacao --> db_config
+
 
 ```
 ## Estrutura de código
