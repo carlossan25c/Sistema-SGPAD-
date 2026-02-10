@@ -1,32 +1,48 @@
+from application.solicitacao_service import SolicitacaoService
+from rules.regra_prazo import RegraPrazo
+from rules.regra_elegibilidade import RegraElegibilidade
 from domain.aluno import Aluno
-from domain.setor import SetorAcademico
-from domain.solicitacao import SolicitacaoTrancamento
-from domain.regra import RegraPrazo, RegraElegibilidade
+from domain.curso import Curso
+from domain.disciplina import Disciplina
+from infrastructure.db_config import init_db
+from infrastructure.repositorio_aluno import RepositorioAluno
+from infrastructure.repositorio_solicitacao import RepositorioSolicitacao
 
-from persistence.aluno_repository import AlunoRepository
-from persistence.solicitacao_repository import SolicitacaoRepository
+def executar_fluxo():
+    # Inicializa o banco
+    init_db()
 
-def main():
-    aluno_repo = AlunoRepository()
-    solicitacao_repo = SolicitacaoRepository()
+    # Repositórios
+    repo_aluno = RepositorioAluno()
+    repo_solicitacao = RepositorioSolicitacao()
 
-    aluno_repo.criar_tabela()
-    solicitacao_repo.criar_tabela()
+    # Criar curso e aluno
+    curso = Curso("Engenharia de Software")
+    aluno = Aluno("Carlos", "carlos@email.com", "2026001", curso)
+    repo_aluno.adicionar(aluno)
 
-    aluno = Aluno("20231234", "João Silva", "Engenharia")
-    aluno_repo.salvar(aluno)
+    # Serviço
+    service = SolicitacaoService()
 
-    setor = SetorAcademico("Secretaria Acadêmica", "Maria Souza")
+    # Exemplo de solicitação de matrícula
+    disciplina = Disciplina("POO", 60)
+    solicitacao = service.criar_solicitacao("matricula", aluno, disciplina)
+    valido = service.aplicar_regras(solicitacao, [RegraPrazo(), RegraElegibilidade()])
+    repo_solicitacao.adicionar(solicitacao, "matricula")
 
-    solicitacao = SolicitacaoTrancamento(aluno, setor)
-    solicitacao.adicionar_regra(RegraPrazo())
-    solicitacao.adicionar_regra(RegraElegibilidade())
-
-    solicitacao.executar()
-    solicitacao.executar()
-    solicitacao.executar()
-
-    solicitacao_repo.salvar(solicitacao)
+    # Retorna dados estruturados
+    return {
+        "alunos": repo_aluno.listar(),
+        "solicitacoes": repo_solicitacao.listar(),
+        "resultado": "Aprovada" if valido else "Rejeitada"
+    }
 
 if __name__ == "__main__":
-    main()
+    dados = executar_fluxo()
+    # Aqui você decide como exibir (CLI, web, GUI)
+    # Exemplo CLI:
+    for aluno in dados["alunos"]:
+        print("Aluno:", aluno)
+    for solicitacao in dados["solicitacoes"]:
+        print("Solicitação:", solicitacao)
+    print("Resultado final:", dados["resultado"])

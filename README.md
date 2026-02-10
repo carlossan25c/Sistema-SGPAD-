@@ -42,6 +42,7 @@ classDiagram
     %% Usuários
     %% =========================
     class Usuario {
+        <<abstract>>
         - nome: str
         - email: str
     }
@@ -69,8 +70,8 @@ classDiagram
         - cargaHoraria: int
     }
     class Historico {
-        - disciplinas: List<Disciplina>
-        - notas: Dict
+        - disciplinas: Dict<Disciplina, float>
+        + total_creditos(): int
     }
 
     Aluno --> Curso
@@ -86,6 +87,7 @@ classDiagram
         - aluno: Aluno
         - status: str
         + validar(): bool
+        + mudar_estado(novo_estado: str)
     }
     class SolicitacaoTrancamento {
         - disciplina: Disciplina
@@ -119,58 +121,69 @@ classDiagram
     %% Serviços
     %% =========================
     class SolicitacaoService {
-        + criarSolicitacao()
-        + aplicarRegras()
-        + mudarEstado()
+        + criar_solicitacao(tipo, aluno, alvo)
+        + aplicar_regras(solicitacao, regras)
     }
     class NotificacaoService {
-        + notificarSetor()
+        + notificar_setor(solicitacao)
+    }
+    class RelatorioService {
+        + gerar_relatorio(solicitacoes)
     }
     SolicitacaoService --> Solicitacao
     SolicitacaoService --> Regra
     NotificacaoService --> Usuario
+    RelatorioService --> Solicitacao
+
+    %% =========================
+    %% Infraestrutura
+    %% =========================
+    class RepositorioAluno {
+        + adicionar(aluno)
+        + listar(): List<Aluno>
+    }
+    class RepositorioSolicitacao {
+        + adicionar(solicitacao)
+        + listar(): List<Solicitacao>
+    }
+    class db_config {
+        DATABASE: Dict
+    }
 
 ```
 ## Estrutura de código
 ```
 Sistema-SGSA/
 │
-├── domain/                # Entidades de negócio
-│   ├── aluno.py
-│   ├── professor.py
-│   ├── curso.py
-│   ├── disciplina.py
-│   ├── solicitacao.py
+├── domain/                
+│   ├── usuario.py              # Usuario (abstrata), Aluno, Professor
+│   ├── curso.py                # Curso
+│   ├── disciplina.py           # Disciplina
+│   ├── historico.py            # Historico
+│   ├── solicitacao.py          # Classe abstrata Solicitação
 │   ├── solicitacao_trancamento.py
 │   ├── solicitacao_matricula.py
 │   ├── solicitacao_colacao.py
-│   └── historico.py
 │
-├── rules/                 # Estratégias de validação (Strategy)
-│   ├── regra_base.py
-│   ├── regra_prazo.py
-│   ├── regra_elegibilidade.py
-│   └── regra_creditos.py
+├── rules/                     
+│   ├── regra_base.py           # Interface Regra
+│   ├── regra_prazo.py          # Implementação
+│   ├── regra_elegibilidade.py  # Implementação
+│   ├── regra_creditos.py       # Implementação
 │
-├── application/           # Serviços e casos de uso
-│   ├── solicitacao_service.py
-│   ├── notificacao_service.py
-│   └── relatorio_service.py
+├── application/               
+│   ├── solicitacao_service.py  # Factory + aplicação de regras
+│   ├── notificacao_service.py  # Observer
+│   ├── relatorio_service.py    # Relatórios simples
 │
-├── infrastructure/        # Persistência e integração
+├── infrastructure/            
 │   ├── repositorio_aluno.py
 │   ├── repositorio_solicitacao.py
-│   └── db_config.py
+│   ├── db_config.py
 │
-├── tests/                 # Testes automatizados
-│   ├── test_aluno.py
-│   ├── test_solicitacao.py
-│   ├── test_rules.py
-│   └── test_services.py
+├── tests/                     # (já planejados, não incluídos aqui)
 │
-├── main.py                # Ponto de entrada
-└── README.md              # Documentação
-
+└── main.py                    # CLI simples
 
 ```
 

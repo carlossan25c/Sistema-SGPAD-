@@ -1,36 +1,23 @@
-from abc import ABC
-from domain.estado import EstadoAberta
-from domain.regra import RegraSolicitacao
+from abc import ABC, abstractmethod
 
-class SolicitacaoAcademica(ABC):
-
-    def __init__(self, aluno, setor):
+class Solicitacao(ABC):
+    def __init__(self, aluno):
         self._aluno = aluno
-        self._setor = setor
-        self._estado = EstadoAberta()
-        self._regras: list[RegraSolicitacao] = []
+        self._status = "Aberta"
 
-    def adicionar_regra(self, regra: RegraSolicitacao):
-        self._regras.append(regra)
+    @property
+    def aluno(self):
+        return self._aluno
 
-    def alterar_estado(self, novo_estado):
-        self._estado = novo_estado
+    @property
+    def status(self):
+        return self._status
 
-    def executar(self):
-        for regra in self._regras:
-            if not regra.avaliar(self):
-                print("Solicitação rejeitada")
-                return
-        self._estado.executar(self)
+    def mudar_estado(self, novo_estado: str):
+        if self._status == "Finalizada" and novo_estado == "Aberta":
+            raise ValueError("Não é possível reabrir solicitação finalizada.")
+        self._status = novo_estado
 
-
-class SolicitacaoTrancamento(SolicitacaoAcademica):
-    pass
-
-
-class SolicitacaoDeclaracao(SolicitacaoAcademica):
-    pass
-
-
-class SolicitacaoRevisaoNota(SolicitacaoAcademica):
-    pass
+    @abstractmethod
+    def validar(self):
+        pass
