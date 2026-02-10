@@ -7,3 +7,7 @@ class Disciplina:
     @property
     def carga_horaria(self):
         return self._carga_horaria
+    
+    @property
+    def codigo(self):
+        return self._codigo
