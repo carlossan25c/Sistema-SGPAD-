@@ -149,35 +149,39 @@ classDiagram
 Sistema-SGSA/
 │
 ├── domain/                
-│   ├── usuario.py              # Usuario (abstrata), Aluno, Professor
-│   ├── curso.py                # Curso
-│   ├── disciplina.py           # Disciplina
-│   ├── historico.py            # Historico
-│   ├── solicitacao.py          # Classe abstrata Solicitação
-│   ├── solicitacao_trancamento.py
-│   ├── solicitacao_matricula.py
-│   ├── solicitacao_colacao.py
+│   ├── usuario.py                # Classe abstrata Usuario, subclasses Aluno e Professor
+│   ├── aluno.py                  # Classe Aluno (separada de usuario.py, se preferir)
+│   ├── professor.py              # Classe Professor
+│   ├── curso.py                  # Classe Curso
+│   ├── disciplina.py             # Classe Disciplina
+│   ├── historico.py              # Classe Historico (disciplinas concluídas, créditos)
+│   ├── setor.py                  # Classe Setor (se aplicável)
+│   ├── estado.py                 # Classe Estado (status de solicitações)
+│   ├── solicitacao.py            # Classe base abstrata Solicitação
+│   ├── solicitacao_trancamento.py# Solicitação de trancamento
+│   ├── solicitacao_matricula.py  # Solicitação de matrícula
+│   ├── solicitacao_colacao.py    # Solicitação de colação de grau
 │
 ├── rules/                     
-│   ├── regra_base.py           # Interface Regra
-│   ├── regra_prazo.py          # Implementação
-│   ├── regra_elegibilidade.py  # Implementação
-│   ├── regra_creditos.py       # Implementação
+│   ├── regra_base.py             # Interface Regra
+│   ├── regra_prazo.py            # Implementação da regra de prazo
+│   ├── regra_elegibilidade.py    # Implementação da regra de elegibilidade
+│   ├── regra_creditos.py         # Implementação da regra de créditos mínimos
 │
 ├── application/               
-│   ├── solicitacao_service.py  # Factory + aplicação de regras
-│   ├── notificacao_service.py  # Observer
-│   ├── relatorio_service.py    # Relatórios simples
+│   ├── solicitacao_service.py    # Factory de solicitações + aplicação de regras
+│   ├── notificacao_service.py    # Observer para notificações
+│   ├── relatorio_service.py      # Relatórios simples
 │
 ├── infrastructure/            
-│   ├── repositorio_aluno.py
-│   ├── repositorio_solicitacao.py
-│   ├── db_config.py
+│   ├── repositorio_aluno.py      # CRUD de alunos
+│   ├── repositorio_solicitacao.py# CRUD de solicitações
+│   ├── repositorio_disciplina.py # CRUD de disciplinas (novo)
+│   ├── db_config.py              # Configuração do banco SQLite (criação de tabelas)
 │
-├── tests/                     # (já planejados, não incluídos aqui)
+├── tests/                        # Pasta reservada para testes unitários
 │
-└── main.py                    # CLI simples
-
+└──main.py                       # CLI interativo com menu
 ```
 
 - **Domain**: Aluno, Professor, Curso, Disciplina, Solicitação, Regras  
