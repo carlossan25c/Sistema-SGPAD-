@@ -1,23 +1,21 @@
-from abc import ABC, abstractmethod
+# domain/solicitacao.py
+class Solicitacao:
+    def __init__(self, aluno, disciplina=None, curso=None):
+        self.aluno = aluno
+        self.disciplina = disciplina
+        self.curso = curso
+        self.status = "Aberta"
 
-class Solicitacao(ABC):
-    def __init__(self, aluno):
-        self._aluno = aluno
-        self._status = "Aberta"
+    def aprovar(self):
+        self.status = "Aprovada"
 
-    @property
-    def aluno(self):
-        return self._aluno
+    def rejeitar(self):
+        self.status = "Rejeitada"
 
-    @property
-    def status(self):
-        return self._status
-
-    def mudar_estado(self, novo_estado: str):
-        if self._status == "Finalizada" and novo_estado == "Aberta":
-            raise ValueError("Não é possível reabrir solicitação finalizada.")
-        self._status = novo_estado
-
-    @abstractmethod
-    def validar(self):
-        pass
+    def __str__(self):
+        if self.disciplina:
+            return f"Solicitação de {self.__class__.__name__} - Aluno: {self.aluno.nome}, Disciplina: {self.disciplina.nome}, Status: {self.status}"
+        elif self.curso:
+            return f"Solicitação de {self.__class__.__name__} - Aluno: {self.aluno.nome}, Curso: {self.curso.nome}, Status: {self.status}"
+        else:
+            return f"Solicitação de {self.__class__.__name__} - Aluno: {self.aluno.nome}, Status: {self.status}"

@@ -1,11 +1,8 @@
+# domain/curso.py
 class Curso:
     def __init__(self, nome: str):
-        self._nome = nome
-        self._disciplinas = []
+        self.nome = nome
+        self.disciplinas = []
 
-    def adicionar_disciplina(self, disciplina):
-        self._disciplinas.append(disciplina)
-
-    @property
-    def disciplinas(self):
-        return self._disciplinas
+    def __str__(self):
+        return f"Curso: {self.nome}"

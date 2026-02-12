@@ -1,13 +1,8 @@
+# domain/disciplina.py
 class Disciplina:
-    
-    def __init__(self, codigo: str, carga_horaria: int):
-        self._codigo = codigo
-        self._carga_horaria = carga_horaria
+    def __init__(self, nome: str, carga_horaria: int):
+        self.nome = nome
+        self.carga_horaria = carga_horaria
 
-    @property
-    def carga_horaria(self):
-        return self._carga_horaria
-    
-    @property
-    def codigo(self):
-        return self._codigo
+    def __str__(self):
+        return f"Disciplina: {self.nome} ({self.carga_horaria}h)"

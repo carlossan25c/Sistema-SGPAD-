@@ -1,43 +1,28 @@
-from domain.usuario import Usuario
+# domain/aluno.py
 from domain.curso import Curso
 from domain.historico import Historico
 
-class Aluno(Usuario):
+class Aluno:
     def __init__(self, nome: str, email: str, matricula: str, curso: Curso):
-        super().__init__(nome, email)
-        self._matricula = matricula
-        self._curso = curso
-        self._historico = Historico()
+        self.nome = nome
+        self.email = email
+        self.__matricula = matricula
+        self.__curso = curso
+        self.historico = Historico()
 
     @property
     def matricula(self):
         return self.__matricula
-    
-    @matricula.setter
-    def matricula(self, nova_matricula):
-        if isinstance(nova_matricula, str):
-            self.__matricula = nova_matricula
-
-        else:
-            raise TypeError("Matricula deve ser String!")
-        
 
     @property
     def curso(self):
         return self.__curso
 
     @curso.setter
-    def curso(self, novo_curso):
-        if not isinstance(novo_curso, str):
-            raise TypeError("Curso deve ser String!")
-        
-        if not isinstance(novo_curso, Curso):
-            raise TypeError("Esperava instância de curso.")
-        
-        else:
-            self.__curso = novo_curso
-        
+    def curso(self, value):
+        if not isinstance(value, Curso):
+            raise TypeError("Curso deve ser um objeto da classe Curso!")
+        self.__curso = value
 
-    @property
-    def historico(self):
-        return self._historico
+    def __str__(self):
+        return f"Aluno: {self.nome} ({self.matricula}) - Curso: {self.curso.nome}"
