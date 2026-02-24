@@ -2,7 +2,12 @@
 from infrastructure.db_config import get_connection
 
 class RepositorioSolicitacao:
+    """Persiste e recupera solicitações acadêmicas do banco."""
     def adicionar(self, solicitacao, tipo: str):
+        """
+        Salva uma solicitação. Nota: Atributos disciplina/curso 
+        podem ser nulos dependendo do tipo da solicitação.
+        """
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -19,6 +24,7 @@ class RepositorioSolicitacao:
         conn.close()
 
     def listar(self):
+        """Retorna o histórico bruto de todas as solicitações."""
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT id, tipo, aluno_id, status, disciplina, curso FROM solicitacoes")

@@ -2,6 +2,10 @@ from domain.professor import Professor
 from domain.disciplina import Disciplina
 
 def test_professor_e_suas_disciplinas():
+    """
+    Testa a relação de composição/agregação entre Professor e Disciplina,
+    verificando se a atribuição de carga horária docente funciona.
+    """
 
     professor = Professor(nome="Davi", email="davi@ufca.edu.br", siape="1234567")
     disciplina = Disciplina(codigo="POO01", carga_horaria=64)

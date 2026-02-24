@@ -2,7 +2,9 @@
 from infrastructure.db_config import get_connection
 
 class RepositorioAluno:
+    """Gerencia a persistência de objetos Aluno no banco de dados."""
     def adicionar(self, aluno):
+        """Insere um novo aluno no banco."""
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -13,6 +15,7 @@ class RepositorioAluno:
         conn.close()
 
     def listar(self):
+        """Retorna todos os alunos cadastrados."""
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT nome, email, matricula, curso FROM alunos")

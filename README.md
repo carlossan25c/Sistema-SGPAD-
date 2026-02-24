@@ -225,3 +225,51 @@ Sistema-SGSA/
 | Lucas Daniel Dias de Sousa       | https://github.com/Lucasd11 |
 | Davi Maia Soares                 | https://github.com/davimso |
 | José Luiz de Lima Mendes         | https://github.com/J-Luiz-L |
+
+O Gemini disse
+Com base nos arquivos fornecidos, realizei a documentação completa. Abaixo, apresento primeiro a expansão do seu README.md com as seções de instalação e uso, e em seguida, as versões comentadas de cada arquivo de código.
+
+📄 Expansão do README.md
+Adicione as seguintes seções ao final do seu arquivo README.md atual:
+
+🛠️ Instalação e Configuração
+Pré-requisitos
+Python 3.8+ instalado.
+
+SQLite3 (já vem nativo com o Python).
+
+Passo a Passo
+Clone o repositório:
+
+Bash
+git clone https://github.com/seu-usuario/SGSA.git
+cd SGSA
+Inicialize o Banco de Dados:
+O sistema utiliza SQLite. Antes da primeira execução, certifique-se de que a função init_db() do arquivo infrastructure/db_config.py seja chamada para criar as tabelas sgsa.db.
+
+🚀 Como Executar
+Para iniciar o sistema via CLI (Interface de Linha de Comando), execute o arquivo principal:
+
+Bash
+python main.py
+💡 Exemplos de Uso (Snippet de Código)
+Abaixo, um exemplo de como o sistema pode ser utilizado programaticamente:
+
+Python
+from infrastructure.db_config import init_db
+from application.solicitacao_service import SolicitacaoService
+from domain.aluno import Aluno
+from domain.curso import Curso
+
+# 1. Inicializa o banco
+init_db()
+
+# 2. Instancia objetos de domínio
+curso_si = Curso("Sistemas de Informação")
+aluno = Aluno("João Silva", "joao@email.com", "2023001", curso_si)
+
+# 3. Usa o serviço para criar uma solicitação (Pattern: Factory)
+service = SolicitacaoService()
+solicitacao = service.criar_solicitacao("trancamento", aluno, curso_si)
+
+print(f"Solicitação de {solicitacao.__class__.__name__} criada com sucesso!")

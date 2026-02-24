@@ -2,11 +2,16 @@ import sqlite3
 
 def get_connection():
     return sqlite3.connect("sgsa.db")
+"""Cria e retorna uma conexão ativa com o banco de dados SQLite."""
 
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
+    """
+    Executa o script de DDL (Data Definition Language) para 
+    garantir que as tabelas necessárias existam no banco.
+    """
     # Tabela de alunos
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS alunos (
