@@ -226,36 +226,26 @@ Sistema-SGSA/
 | Davi Maia Soares                 | https://github.com/davimso |
 | José Luiz de Lima Mendes         | https://github.com/J-Luiz-L |
 
-O Gemini disse
-Com base nos arquivos fornecidos, realizei a documentação completa. Abaixo, apresento primeiro a expansão do seu README.md com as seções de instalação e uso, e em seguida, as versões comentadas de cada arquivo de código.
+**Instalação e Configuração**
+__Pré-requisitos:__
 
-📄 Expansão do README.md
-Adicione as seguintes seções ao final do seu arquivo README.md atual:
-
-🛠️ Instalação e Configuração
-Pré-requisitos
 Python 3.8+ instalado.
+SQLite3.
 
-SQLite3 (já vem nativo com o Python).
-
-Passo a Passo
-Clone o repositório:
-
-Bash
-git clone https://github.com/seu-usuario/SGSA.git
+**Passo a Passo:**
+Clone o repositório: git clone https://github.com/seu-usuario/SGSA.git
 cd SGSA
-Inicialize o Banco de Dados:
-O sistema utiliza SQLite. Antes da primeira execução, certifique-se de que a função init_db() do arquivo infrastructure/db_config.py seja chamada para criar as tabelas sgsa.db.
 
-🚀 Como Executar
+__Inicialize o Banco de Dados:__
+O sistema utiliza SQLite. Antes da primeira execução, certifique-se de que a função init_db() do arquivo infrastructure/db_config.py seja chamada para criar as tabelas sgsa.db
+
+**Como Executar:**
+
 Para iniciar o sistema via CLI (Interface de Linha de Comando), execute o arquivo principal:
-
-Bash
 python main.py
-💡 Exemplos de Uso (Snippet de Código)
-Abaixo, um exemplo de como o sistema pode ser utilizado programaticamente:
 
-Python
+**Exemplos de Uso (Snippet de Código):**
+Abaixo, um exemplo de como o sistema pode ser utilizado programaticamente:
 from infrastructure.db_config import init_db
 from application.solicitacao_service import SolicitacaoService
 from domain.aluno import Aluno
@@ -273,3 +263,4 @@ service = SolicitacaoService()
 solicitacao = service.criar_solicitacao("trancamento", aluno, curso_si)
 
 print(f"Solicitação de {solicitacao.__class__.__name__} criada com sucesso!")
+
