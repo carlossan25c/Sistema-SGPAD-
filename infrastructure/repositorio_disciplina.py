@@ -1,26 +1,46 @@
-# infrastructure/repositorio_disciplina.py
-from infrastructure.db_config import get_connection
+from infrastructure.db_config import load_db, save_db
+
 
 class RepositorioDisciplina:
     """
-    Responsável pela persistência e recuperação de dados de disciplinas no banco de dados.
+    Responsável pela persistência e recuperação de dados
+    de disciplinas no arquivo JSON.
     """
+
     def adicionar(self, disciplina):
-        """Insere uma nova disciplina (nome e carga horária) no sistema."""
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO disciplinas (nome, carga_horaria)
-            VALUES (?, ?)
-        """, (disciplina.nome, disciplina.carga_horaria))
-        conn.commit()
-        conn.close()
+        db = load_db()
+
+        nova_disciplina = {
+            "id": self._gerar_id(db["disciplinas"]),
+            "nome": disciplina.nome,
+            "carga_horaria": disciplina.carga_horaria
+        }
+
+        db["disciplinas"].append(nova_disciplina)
+        save_db(db)
 
     def listar(self):
-        """Recupera a lista completa de disciplinas cadastradas."""
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT nome, carga_horaria FROM disciplinas")
-        disciplinas = cursor.fetchall()
-        conn.close()
-        return disciplinas
+        db = load_db()
+
+        # Mantendo formato compatível com sua main:
+        # (nome, carga_horaria)
+        return [
+            (d["nome"], d["carga_horaria"])
+            for d in db["disciplinas"]
+        ]
+
+    def remover(self, nome_disciplina):
+        db = load_db()
+
+        db["disciplinas"] = [
+            d for d in db["disciplinas"]
+            if d["nome"] != nome_disciplina
+        ]
+
+        save_db(db)
+
+    def _gerar_id(self, lista):
+        """Simula AUTO_INCREMENT."""
+        if not lista:
+            return 1
+        return max(d["id"] for d in lista) + 1
