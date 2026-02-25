@@ -1,26 +1,16 @@
-# infrastructure/repositorio_disciplina.py
-from infrastructure.db_config import get_connection
+from infrastructure.db_config import load_db, save_db
 
 class RepositorioDisciplina:
-    """
-    Responsável pela persistência e recuperação de dados de disciplinas no banco de dados.
-    """
+    """Gere a persistência de Disciplinas no ficheiro JSON."""
+
     def adicionar(self, disciplina):
-        """Insere uma nova disciplina (nome e carga horária) no sistema."""
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO disciplinas (nome, carga_horaria)
-            VALUES (?, ?)
-        """, (disciplina.nome, disciplina.carga_horaria))
-        conn.commit()
-        conn.close()
+        db = load_db()
+        db['disciplinas'].append({
+            "nome": disciplina.nome,
+            "carga_horaria": disciplina.carga_horaria
+        })
+        save_db(db)
 
     def listar(self):
-        """Recupera a lista completa de disciplinas cadastradas."""
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT nome, carga_horaria FROM disciplinas")
-        disciplinas = cursor.fetchall()
-        conn.close()
-        return disciplinas
+        db = load_db()
+        return [(d['nome'], d['carga_horaria']) for d in db['disciplinas']]

@@ -1,47 +1,28 @@
-import sqlite3
+# infrastructure/db_config.py
+import json
+import os
 
-def get_connection():
-    return sqlite3.connect("sgsa.db")
-"""Cria e retorna uma conexão ativa com o banco de dados SQLite."""
+DB_FILE = "sgsa.json"
 
 def init_db():
-    conn = get_connection()
-    cursor = conn.cursor()
+    """Inicializa o ficheiro JSON com a estrutura básica se não existir."""
+    if not os.path.exists(DB_FILE):
+        estrutura = {
+            "alunos": [],
+            "disciplinas": [],
+            "solicitacoes": []
+        }
+        save_db(estrutura)
+        print(f"✅ Ficheiro {DB_FILE} criado com sucesso.")
 
-    """
-    Executa o script de DDL (Data Definition Language) para 
-    garantir que as tabelas necessárias existam no banco.
-    """
-    # Tabela de alunos
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS alunos (
-            nome TEXT,
-            email TEXT,
-            matricula TEXT PRIMARY KEY,
-            curso TEXT
-        )
-    """)
+def load_db():
+    """Lê todos os dados do ficheiro JSON."""
+    if not os.path.exists(DB_FILE):
+        init_db()
+    with open(DB_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-    # Tabela de solicitações
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS solicitacoes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tipo TEXT,
-            aluno_id TEXT,
-            status TEXT,
-            disciplina TEXT,
-            curso TEXT
-        )
-    """)
-
-    # Tabela de disciplinas
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS disciplinas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT,
-            carga_horaria INTEGER
-        )
-    """)
-
-    conn.commit()
-    conn.close()
+def save_db(data):
+    """Guarda os dados fornecidos no ficheiro JSON."""
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)

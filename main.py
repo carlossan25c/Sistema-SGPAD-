@@ -1,6 +1,5 @@
 import argparse
-import sys
-from infrastructure.db_config import init_db, get_connection
+from infrastructure.db_config import init_db
 from infrastructure.repositorio_aluno import RepositorioAluno
 from infrastructure.repositorio_solicitacao import RepositorioSolicitacao
 from infrastructure.repositorio_disciplina import RepositorioDisciplina
@@ -10,102 +9,88 @@ from domain.curso import Curso
 from domain.disciplina import Disciplina
 
 def setup_argparse():
-    """
-    Configura o parser de argumentos para suportar comandos e subcomandos.
-    Estrutura: main.py [comando] [subcomando] [argumentos]
-    """
-    parser = argparse.ArgumentParser(description="SGSA - Sistema de Gestão de Solicitações Acadêmicas")
-    subparsers = parser.add_subparsers(dest="command", help="Comandos disponíveis")
+    """Configura a interface de linha de comando com argparse."""
+    parser = argparse.ArgumentParser(description="SGSA - Sistema de Gestão Académica (Versão JSON)")
+    subparsers = parser.add_subparsers(dest="command", help="Comandos principais")
 
-    # --- COMANDO: ALUNO ---
-    aluno_parser = subparsers.add_parser("aluno", help="Gestão de alunos")
-    aluno_sub = aluno_parser.add_subparsers(dest="subcommand")
+    # Comando Aluno
+    aluno_p = subparsers.add_parser("aluno", help="Gestão de alunos")
+    aluno_sub = aluno_p.add_subparsers(dest="subcommand")
     
-    # Subcomando: aluno cadastrar
-    cad_aluno = aluno_sub.add_parser("cadastrar", help="Cadastra um novo aluno")
-    cad_aluno.add_argument("--nome", required=True)
-    cad_aluno.add_argument("--email", required=True)
-    cad_aluno.add_argument("--mat", required=True, help="Matrícula do aluno")
-    cad_aluno.add_argument("--curso", required=True)
+    cad = aluno_sub.add_parser("cadastrar", help="Cadastrar aluno")
+    cad.add_argument("--nome", required=True)
+    cad.add_argument("--email", required=True)
+    cad.add_argument("--mat", required=True)
+    cad.add_argument("--curso", required=True)
 
-    # Subcomando: aluno listar
-    aluno_sub.add_parser("listar", help="Lista todos os alunos")
+    aluno_sub.add_parser("listar", help="Listar alunos")
+    
+    rem = aluno_sub.add_parser("remover", help="Remover aluno")
+    rem.add_argument("--mat", required=True)
 
-    # Subcomando: aluno remover
-    rem_aluno = aluno_sub.add_parser("remover", help="Remove um aluno pela matrícula")
-    rem_aluno.add_argument("--mat", required=True)
+    # Comando Disciplina
+    disc_p = subparsers.add_parser("disciplina", help="Gestão de disciplinas")
+    disc_sub = disc_p.add_subparsers(dest="subcommand")
+    
+    cad_d = disc_sub.add_parser("cadastrar", help="Cadastrar disciplina")
+    cad_d.add_argument("--nome", required=True)
+    cad_d.add_argument("--carga", type=int, required=True)
+    
+    disc_sub.add_parser("listar", help="Listar disciplinas")
 
-    # --- COMANDO: SOLICITACAO ---
-    sol_parser = subparsers.add_parser("solicitacao", help="Gestão de solicitações")
-    sol_sub = sol_parser.add_subparsers(dest="subcommand")
+    # Comando Solicitação
+    sol_p = subparsers.add_parser("solicitacao", help="Gestão de solicitações")
+    sol_sub = sol_p.add_subparsers(dest="subcommand")
+    
+    criar = sol_sub.add_parser("criar", help="Criar solicitação")
+    criar.add_argument("--tipo", choices=["matricula", "trancamento", "colacao"], required=True)
+    criar.add_argument("--mat", required=True)
+    criar.add_argument("--alvo", required=True)
 
-    # Subcomando: solicitacao criar
-    criar_sol = sol_sub.add_parser("criar", help="Cria uma nova solicitação acadêmica")
-    criar_sol.add_argument("--tipo", choices=["matricula", "trancamento", "colacao"], required=True)
-    criar_sol.add_argument("--mat", required=True, help="Matrícula do aluno")
-    criar_sol.add_argument("--alvo", help="Nome da disciplina ou curso")
-
-    # Subcomando: solicitacao listar
-    sol_sub.add_parser("listar", help="Lista todas as solicitações")
-
-    # --- COMANDO: DISCIPLINA ---
-    disc_parser = subparsers.add_parser("disciplina", help="Gestão de disciplinas")
-    disc_sub = disc_parser.add_subparsers(dest="subcommand")
-
-    # Subcomando: disciplina cadastrar
-    cad_disc = disc_sub.add_parser("cadastrar", help="Cadastra uma nova disciplina")
-    cad_disc.add_argument("--nome", required=True)
-    cad_disc.add_argument("--carga", type=int, required=True)
+    sol_sub.add_parser("listar", help="Listar solicitações")
 
     return parser
 
 def main():
-    """
-    Ponto de entrada que processa a lógica de execução baseada nos comandos fornecidos.
-    """
+    """Executa o sistema com base nos argumentos passados."""
     init_db()
     parser = setup_argparse()
     args = parser.parse_args()
 
-    # Repositórios
     repo_aluno = RepositorioAluno()
-    repo_solicitacao = RepositorioSolicitacao()
-    repo_disciplina = RepositorioDisciplina()
+    repo_disc = RepositorioDisciplina()
+    repo_sol = RepositorioSolicitacao()
     service = SolicitacaoService()
 
     if args.command == "aluno":
         if args.subcommand == "cadastrar":
             aluno = Aluno(args.nome, args.email, args.mat, Curso(args.curso))
             repo_aluno.adicionar(aluno)
-            print(f"✅ Aluno {args.nome} cadastrado!")
-        
+            print(f"✅ Aluno {args.nome} guardado no ficheiro JSON!")
         elif args.subcommand == "listar":
+            print("\n📋 Lista de Alunos (JSON):")
             for a in repo_aluno.listar():
-                print(f"ID: {a[2]} | Nome: {a[0]} | Curso: {a[3]}")
-
+                print(f" - {a[0]} | Mat: {a[2]} | Curso: {a[3]}")
         elif args.subcommand == "remover":
-            conn = get_connection()
-            conn.execute("DELETE FROM alunos WHERE matricula = ?", (args.mat,))
-            conn.commit()
-            print(f"🗑️ Aluno {args.mat} removido.")
-
-    elif args.command == "solicitacao":
-        if args.subcommand == "criar":
-            # Nota: Em um sistema real, buscaríamos o objeto Aluno real no DB aqui
-            aluno_mock = Aluno("Estudante", "email@u.com", args.mat, Curso("Geral"))
-            sol = service.criar_solicitacao(args.tipo, aluno_mock, args.alvo)
-            repo_solicitacao.adicionar(sol, args.tipo)
-            print(f"✅ Solicitação de {args.tipo} criada para {args.mat}!")
-
-        elif args.subcommand == "listar":
-            for s in repo_solicitacao.listar():
-                print(f"ID: {s[0]} | Tipo: {s[1]} | Status: {s[3]}")
+            repo_aluno.remover(args.mat)
 
     elif args.command == "disciplina":
         if args.subcommand == "cadastrar":
-            repo_disciplina.adicionar(Disciplina(args.nome, args.carga))
-            print(f"✅ Disciplina {args.nome} cadastrada!")
+            repo_disc.adicionar(Disciplina(args.nome, args.carga))
+            print(f"✅ Disciplina {args.nome} adicionada.")
+        elif args.subcommand == "listar":
+            for d in repo_disc.listar():
+                print(f" - {d[0]} ({d[1]}h)")
 
+    elif args.command == "solicitacao":
+        if args.subcommand == "criar":
+            aluno_obj = Aluno("Estudante", "email", args.mat, Curso("Geral"))
+            sol = service.criar_solicitacao(args.tipo, aluno_obj, args.alvo)
+            repo_sol.adicionar(sol, args.tipo)
+            print(f"✅ Solicitação de {args.tipo} registada.")
+        elif args.subcommand == "listar":
+            for s in repo_sol.listar():
+                print(f"ID: {s[0]} | Tipo: {s[1]} | Aluno: {s[2]} | Alvo: {s[4]} | Status: {s[3]}")
     else:
         parser.print_help()
 
