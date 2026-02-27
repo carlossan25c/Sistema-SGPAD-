@@ -272,6 +272,98 @@ SGSA/
 
 ---
 
+## 📐 Regras de Negócio
+
+### 1. Regras de Validação Acadêmica (Padrão Strategy)
+
+Para cada tipo de solicitação, o sistema valida critérios específicos antes de permitir a criação ou o processamento. O padrão Strategy garante que novas regras possam ser criadas sem alterar o código existente (**OCP — Open/Closed Principle**).
+
+#### A. Solicitação de Matrícula
+
+**Regra de Pré-requisito** — `RegraPreRequisito`
+O aluno só pode se matricular em uma disciplina se tiver cursado e sido aprovado em todos os pré-requisitos registrados no seu `Historico`. A aprovação é verificada pela nota mínima configurada (padrão: 5.0).
+
+**Regra de Co-requisito** — `RegraCoRequisito`
+Certas disciplinas exigem matrícula simultânea em outras (ex: Teoria de Física e seu Laboratório). O co-requisito pode ser satisfeito de duas formas: o aluno já foi aprovado anteriormente na disciplina, ou está se matriculando nas duas ao mesmo tempo.
+
+**Limite de Carga Horária** — `RegraLimiteCargaHoraria`
+O aluno não pode exceder o limite máximo de horas semestrais definido pelo `Curso`. A soma das horas já matriculadas no semestre com a carga da nova disciplina não pode ultrapassar esse teto.
+
+---
+
+#### B. Solicitação de Trancamento
+
+**Regra de Prazo Acadêmico** — `RegraPrazo`
+O trancamento de disciplina só é permitido dentro do período definido no calendário acadêmico. A data da solicitação é comparada com o prazo limite informado no ato da criação.
+
+**Limite de Trancamentos** — `RegraLimiteTrancamentos`
+Um aluno só pode trancar o curso um número limitado de vezes — por padrão, no máximo **4 semestres**. O contador é armazenado no `Historico` do aluno e incrementado a cada trancamento efetivado.
+
+**Vínculo Ativo** — `RegraVinculoAtivo`
+Não é permitido solicitar trancamento se o aluno já estiver com o status de vínculo `"Trancado"` (duplo trancamento) ou `"Egresso"` (aluno desligado ou já formado). Apenas o status `"Ativo"` autoriza o pedido.
+
+---
+
+#### C. Solicitação de Colação de Grau
+
+**Integralização Curricular** — `RegraElegibilidade`
+O aluno deve ter completado 100% das disciplinas obrigatórias do curso com aprovação. Além disso, se o curso exigir um mínimo de horas optativas ou de atividades complementares (`min_horas_optativas`), esse valor também deve ter sido atingido.
+
+**Pendência de Documentação** — `RegraPendenciaDocumentacao`
+A solicitação de colação é negada se o aluno possuir qualquer pendência aberta — como débitos na biblioteca ou documentos de registro civil incompletos. Todas as pendências devem ser resolvidas antes do pedido.
+
+---
+
+### 2. Regras de Fluxo e Estado (Padrão State)
+
+O ciclo de vida de uma solicitação respeita transições lógicas definidas pelo padrão State. Uma solicitação não pode "pular" etapas nem retroceder.
+
+**Fluxo permitido:**
+```
+Aberta → Em Análise → Aprovada (Finalizada)
+                    ↘ Rejeitada (Finalizada)
+Aberta → Cancelada
+```
+
+**Imutabilidade Pós-Finalização**
+Uma solicitação no estado `Finalizada` (Aprovada ou Rejeitada) não pode retornar para `Em Análise` nem ser cancelada. Qualquer tentativa lança `TransicaoEstadoInvalidaError`.
+
+**Cancelamento pelo Usuário**
+O aluno só pode cancelar solicitações que ainda estejam no estado `Aberta`. Se a solicitação já estiver `Em Análise`, o cancelamento deve ser solicitado ao `SetorAcademico`. Tentar cancelar fora do estado `Aberta` lança `CancelamentoNaoPermitidoError`.
+
+---
+
+### 3. Regras de Notificação (Padrão Observer)
+
+Sempre que houver mudança de estado, as partes interessadas são notificadas automaticamente pelo `NotificacaoService`, que atua como Observador registrado diretamente na solicitação.
+
+**Notificação ao Setor**
+Ao criar uma `SolicitacaoMatricula`, a Coordenação do Curso é notificada proativamente pelo `SolicitacaoService`, antes mesmo de qualquer mudança de estado.
+
+**Notificação ao Aluno**
+Sempre que o status de uma solicitação mudar (ex: de `"Aberta"` para `"Em Análise"`, ou de `"Em Análise"` para `"Aprovada"`), o sistema dispara automaticamente uma notificação ao aluno. Em produção, esse mecanismo deve ser integrado com um serviço real de e-mail ou SMS.
+
+---
+
+### 4. Implementação Técnica (SOLID)
+
+**Abstração — interface `Regra`**
+Todas as regras herdam da classe abstrata `Regra` (em `rules/regra_base.py`), que define o método obrigatório `validar(solicitacao)`. Isso garante um contrato único para todas as implementações.
+
+**Polimorfismo — `SolicitacaoService.aplicar_regras()`**
+O serviço recebe uma lista de objetos `Regra` e chama `validar()` em cada um de forma polimórfica. Ele não sabe qual regra está executando — apenas que todas respondem ao mesmo método. Novas regras são adicionadas sem alterar o serviço.
+
+**Tratamento de Exceções**
+Se uma regra for violada, o sistema lança `ViolacaoRegraAcademicaError` com uma mensagem clara e o nome da regra que falhou — em vez de retornar `False` silenciosamente. Isso garante que o motivo da negativa seja sempre explícito para o usuário.
+
+```python
+# Exemplo de mensagem gerada automaticamente:
+# [Violação Acadêmica - RegraPreRequisito]
+# Pré-requisito(s) não cumprido(s) para 'Cálculo II': Cálculo I.
+```
+
+---
+
 ## 💾 Persistência de Dados
 
 O sistema utiliza um **arquivo JSON local** (`sgsa.json`) como banco de dados. Não há dependência de nenhum banco de dados relacional ou SQLite.
