@@ -1,5 +1,52 @@
 {
-    "alunos": [],
-    "disciplinas": [],
-    "solicitacoes": []
+    "alunos": [
+        {
+            "nome": "joao kleber",
+            "email": "jkk@aluno.ufca.edu.br ",
+            "matricula": "151515",
+            "curso": "ADS"
+        },
+        {
+            "nome": "joao carlos",
+            "email": "jc123@aluno.ufca.edu.br",
+            "matricula": "606060",
+            "curso": "educação fisica"
+        }
+    ],
+    "disciplinas": [
+        {
+            "nome": "Introdução a Programação",
+            "carga_horaria": 72
+        },
+        {
+            "nome": "Anatomia",
+            "carga_horaria": 72
+        }
+    ],
+    "solicitacoes": [
+        {
+            "id": 1,
+            "protocolo": "S/P",
+            "tipo": "matricula",
+            "aluno_id": "606060",
+            "status": "Aberta",
+            "alvo": "N/A"
+        },
+        {
+            "id": 2,
+            "protocolo": "S/P",
+            "tipo": "trancamento",
+            "aluno_id": "606060",
+            "status": "Aberta",
+            "alvo": "N/A"
+        },
+        {
+            "id": 3,
+            "protocolo": "S/P",
+            "tipo": "colacao",
+            "aluno_id": "606060",
+            "status": "Aberta",
+            "alvo": "N/A"
+        }
+    ]
 }

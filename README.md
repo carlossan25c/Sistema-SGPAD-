@@ -9,11 +9,11 @@ O SGSA modela o ciclo de vida de solicitações realizadas por alunos, considera
 
 Este projeto aplica, de forma prática, os principais conceitos de **Programação Orientada a Objetos (POO)** no desenvolvimento de um sistema acadêmico realista.  
 A solução demonstra:
-- Abstração, herança e polimorfismo  
-- Encapsulamento e composição  
-- Princípios **SOLID**  
-- Padrões de projeto (Strategy, Factory, Observer, State)  
-- Arquitetura em camadas (domínio / aplicação / infraestrutura)  
+- Abstração, herança e polimorfismo
+- Encapsulamento e composição
+- Princípios **SOLID**
+- Padrões de projeto (Strategy, Factory, Observer, State)
+- Arquitetura em camadas (domínio / aplicação / infraestrutura)
 
 ---
 
@@ -21,16 +21,27 @@ A solução demonstra:
 
 O sistema gerencia **solicitações acadêmicas** realizadas por alunos.  
 Cada solicitação:
-- É iniciada por um aluno  
-- Pertence a um tipo específico (Trancamento, Matrícula, Colação de Grau)  
-- Possui um estado (Aberta, Em análise, Finalizada)  
-- Está associada a regras acadêmicas (prazo, elegibilidade, créditos)  
-- É analisada por um setor acadêmico responsável  
+- É iniciada por um aluno
+- Pertence a um tipo específico (Trancamento, Matrícula, Colação de Grau)
+- Possui um estado (Aberta, Em Análise, Aprovada, Rejeitada, Cancelada)
+- Está associada a regras acadêmicas validadas automaticamente
+- É analisada por um setor acadêmico responsável
 
 ---
 
 ## 🏗️ Arquitetura
 
+O sistema segue uma **arquitetura em camadas**, onde cada camada tem responsabilidade exclusiva e se comunica apenas com a camada imediatamente abaixo:
+
+```
+CLI (main.py)
+    ↓
+Application  →  SolicitacaoService, NotificacaoService, RelatorioService
+    ↓
+Domain       →  Aluno, Curso, Disciplina, Solicitacao, Regras, Estados
+    ↓
+Infrastructure → Repositórios + db_config.py (persistência em JSON)
+```
 
 ---
 
@@ -50,6 +61,7 @@ classDiagram
         - matricula: str
         - curso: Curso
         - historico: Historico
+        - pendencias: list
     }
     class Professor {
         - siape: str
@@ -62,13 +74,21 @@ classDiagram
     %% =========================
     class Curso {
         - nome: str
+        - limite_horas_semestrais: int
+        - min_horas_optativas: int
     }
     class Disciplina {
-        - codigo: str
-        - cargaHoraria: int
+        - nome: str
+        - carga_horaria: int
+        - obrigatoria: bool
+        - pre_requisitos: list
+        - co_requisitos: list
     }
     class Historico {
+        + foi_aprovado(disciplina): bool
         + total_creditos(): int
+        + trancamentos: int
+        + status_vinculo: str
     }
     Aluno --> Curso
     Aluno --> Historico
@@ -79,14 +99,20 @@ classDiagram
     %% Solicitações
     %% =========================
     class Solicitacao {
-        <<abstract>>
         - aluno: Aluno
         - status: str
-        + validar(): bool
-        + mudar_estado(novo_estado: str)
+        + avancar()
+        + cancelar()
+        + rejeitar()
+        + registrar_observador(obs)
     }
-    class SolicitacaoTrancamento
-    class SolicitacaoMatricula
+    class SolicitacaoTrancamento {
+        - data: date
+        - prazo: date
+    }
+    class SolicitacaoMatricula {
+        - disciplinas_co_req_solicitadas: list
+    }
     class SolicitacaoColacao
     Solicitacao <|-- SolicitacaoTrancamento
     Solicitacao <|-- SolicitacaoMatricula
@@ -98,15 +124,26 @@ classDiagram
     %% =========================
     class Regra {
         <<interface>>
-        + validar(solicitacao: Solicitacao): bool
+        + validar(solicitacao): bool
     }
+    class RegraPreRequisito
+    class RegraCoRequisito
+    class RegraLimiteCargaHoraria
     class RegraPrazo
+    class RegraLimiteTrancamentos
+    class RegraVinculoAtivo
     class RegraElegibilidade
+    class RegraPendenciaDocumentacao
     class RegraCreditos
+    Regra <|.. RegraPreRequisito
+    Regra <|.. RegraCoRequisito
+    Regra <|.. RegraLimiteCargaHoraria
     Regra <|.. RegraPrazo
+    Regra <|.. RegraLimiteTrancamentos
+    Regra <|.. RegraVinculoAtivo
     Regra <|.. RegraElegibilidade
+    Regra <|.. RegraPendenciaDocumentacao
     Regra <|.. RegraCreditos
-    Solicitacao --> Regra
 
     %% =========================
     %% Serviços
@@ -114,9 +151,15 @@ classDiagram
     class SolicitacaoService {
         + criar_solicitacao(tipo, aluno, alvo)
         + aplicar_regras(solicitacao, regras)
+        + processar(solicitacao, regras)
     }
-    class NotificacaoService
-    class RelatorioService
+    class NotificacaoService {
+        + atualizar(solicitacao)
+        + notificar_setor(solicitacao)
+    }
+    class RelatorioService {
+        + gerar_relatorio(solicitacoes)
+    }
     SolicitacaoService --> Solicitacao
     SolicitacaoService --> Regra
     NotificacaoService --> Solicitacao
@@ -127,92 +170,375 @@ classDiagram
     %% =========================
     class RepositorioAluno {
         + adicionar(aluno)
-        + listar(): List<Aluno>
+        + listar(): list
+        + remover(matricula)
     }
     class RepositorioSolicitacao {
-        + adicionar(solicitacao)
-        + listar(): List<Solicitacao>
+        + adicionar(solicitacao, tipo)
+        + listar(): list
+    }
+    class RepositorioDisciplina {
+        + adicionar(disciplina)
+        + listar(): list
     }
     class db_config {
-        + get_connection()
         + init_db()
+        + load_db(): dict
+        + save_db(data)
     }
     RepositorioAluno --> Aluno
     RepositorioSolicitacao --> Solicitacao
     RepositorioAluno --> db_config
     RepositorioSolicitacao --> db_config
-
-
-```
-## Estrutura de código
-```
-Sistema-SGSA/
-│
-├── domain/                
-│   ├── usuario.py                # Classe abstrata Usuario, subclasses Aluno e Professor
-│   ├── aluno.py                  # Classe Aluno (separada de usuario.py, se preferir)
-│   ├── professor.py              # Classe Professor
-│   ├── curso.py                  # Classe Curso
-│   ├── disciplina.py             # Classe Disciplina
-│   ├── historico.py              # Classe Historico (disciplinas concluídas, créditos)
-│   ├── setor.py                  # Classe Setor (se aplicável)
-│   ├── estado.py                 # Classe Estado (status de solicitações)
-│   ├── solicitacao.py            # Classe base abstrata Solicitação
-│   ├── solicitacao_trancamento.py# Solicitação de trancamento
-│   ├── solicitacao_matricula.py  # Solicitação de matrícula
-│   ├── solicitacao_colacao.py    # Solicitação de colação de grau
-│
-├── rules/                     
-│   ├── regra_base.py             # Interface Regra
-│   ├── regra_prazo.py            # Implementação da regra de prazo
-│   ├── regra_elegibilidade.py    # Implementação da regra de elegibilidade
-│   ├── regra_creditos.py         # Implementação da regra de créditos mínimos
-│
-├── application/               
-│   ├── solicitacao_service.py    # Factory de solicitações + aplicação de regras
-│   ├── notificacao_service.py    # Observer para notificações
-│   ├── relatorio_service.py      # Relatórios simples
-│
-├── infrastructure/            
-│   ├── repositorio_aluno.py      # CRUD de alunos
-│   ├── repositorio_solicitacao.py# CRUD de solicitações
-│   ├── repositorio_disciplina.py # CRUD de disciplinas (novo)
-│   ├── db_config.py              # Configuração do banco SQLite (criação de tabelas)
-│
-├── tests/                        # Pasta reservada para testes unitários
-│
-└──main.py                       # CLI interativo com menu
+    RepositorioDisciplina --> db_config
 ```
 
-- **Domain**: Aluno, Professor, Curso, Disciplina, Solicitação, Regras  
-- **Application**: Serviços de solicitação e notificação  
-- **Infrastructure**: Repositórios e integração com banco de dados  
-- **Tests**: Suíte de testes automatizados (mínimo 12)  
+---
+
+## 🗂️ Estrutura de Código
+
+```
+SGSA/
+│
+├── domain/
+│   ├── usuario.py                 # Classe abstrata base para todos os usuários
+│   ├── aluno.py                   # Classe Aluno com histórico e pendências
+│   ├── professor.py               # Classe Professor com matrícula SIAPE
+│   ├── curso.py                   # Classe Curso com limite semestral e optativas
+│   ├── disciplina.py              # Classe Disciplina com pré e co-requisitos
+│   ├── historico.py               # Histórico acadêmico: notas, créditos, vínculo
+│   ├── setor.py                   # Setor acadêmico responsável pelas análises
+│   ├── estado.py                  # Padrão State: Aberta, Em Análise, Finalizada, Cancelada
+│   ├── excecoes.py                # Exceções personalizadas de domínio
+│   ├── solicitacao.py             # Classe base com State + Observer integrados
+│   ├── solicitacao_trancamento.py # Solicitação de trancamento (com data e prazo)
+│   ├── solicitacao_matricula.py   # Solicitação de matrícula (com co-requisitos)
+│   └── solicitacao_colacao.py     # Solicitação de colação de grau
+│
+├── rules/
+│   ├── regra_base.py              # Interface abstrata Regra (Strategy)
+│   ├── regra_pre_requisito.py     # Verifica aprovação nos pré-requisitos
+│   ├── regra_co_requisito.py      # Verifica matrícula simultânea em co-requisitos
+│   ├── regra_limite_carga_horaria.py # Verifica teto de horas semestrais
+│   ├── regra_prazo.py             # Verifica prazo do calendário acadêmico
+│   ├── regra_limite_trancamentos.py  # Verifica limite de trancamentos (máx. 4)
+│   ├── regra_vinculo_ativo.py     # Verifica se o vínculo é Ativo
+│   ├── regra_elegibilidade.py     # Verifica integralização curricular para colação
+│   ├── regra_pendencia_documentacao.py # Verifica pendências de biblioteca/documentos
+│   └── regra_creditos.py          # Verifica mínimo geral de créditos
+│
+├── application/
+│   ├── solicitacao_service.py     # Factory + Strategy + Observer orquestrados
+│   ├── notificacao_service.py     # Observer: notifica aluno e setor
+│   └── relatorio_service.py       # Relatórios consolidados de solicitações
+│
+├── infrastructure/
+│   ├── db_config.py               # Leitura e escrita do arquivo sgsa.json
+│   ├── repositorio_aluno.py       # CRUD de alunos no JSON
+│   ├── repositorio_disciplina.py  # CRUD de disciplinas no JSON
+│   └── repositorio_solicitacao.py # CRUD de solicitações no JSON
+│
+├── tests/                         # Suíte de testes unitários
+├── sgsa.json                      # Banco de dados do sistema (gerado automaticamente)
+└── main.py                        # Ponto de entrada — CLI via argparse
+```
 
 ---
 
 ## 🧩 Hierarquias
 
-- **Usuário**: `Usuario` (abstrata) → `Aluno`, `Professor`  
-- **Solicitação**: `Solicitacao` (abstrata) → `Trancamento`, `Matrícula`, `Colação de Grau`  
+- **Usuário**: `Usuario` (abstrata) → `Aluno`, `Professor`
+- **Solicitação**: `Solicitacao` → `SolicitacaoTrancamento`, `SolicitacaoMatricula`, `SolicitacaoColacao`
+- **Estado**: `EstadoSolicitacao` (abstrata) → `EstadoAberta`, `EstadoEmAnalise`, `EstadoFinalizada`, `EstadoCancelada`
+- **Regra**: `Regra` (abstrata) → 9 implementações concretas
 
 ---
 
 ## 🌀 Padrões de Projeto
 
-- **Strategy**: regras acadêmicas (prazo, elegibilidade, créditos)  
-- **Factory**: criação de solicitações  
-- **Observer**: notificação de setores responsáveis  
-- **State**: ciclo de vida da solicitação  
+- **Strategy**: regras acadêmicas encapsuladas em classes separadas — novas regras são adicionadas sem alterar o serviço
+- **Factory**: `SolicitacaoService.criar_solicitacao()` instancia o subtipo correto com base numa string
+- **Observer**: `NotificacaoService` registrado nas solicitações e notificado automaticamente a cada mudança de estado
+- **State**: `EstadoAberta → EstadoEmAnalise → EstadoFinalizada/EstadoCancelada` com transições inválidas bloqueadas por exceção
 
 ---
 
 ## 🧱 Princípios SOLID
 
-- **SRP**: cada classe tem responsabilidade única  
-- **OCP**: novas regras podem ser adicionadas sem modificar código existente  
-- **LSP**: subclasses de Solicitação respeitam contrato da classe abstrata  
-- **DIP**: serviços dependem de abstrações, não de implementações concretas  
+- **SRP**: cada classe tem uma única responsabilidade (ex: Historico só gerencia histórico, Regra só valida um critério)
+- **OCP**: novas regras e novos tipos de solicitação são adicionados por extensão, sem modificar código existente
+- **LSP**: todas as subclasses de Solicitacao e Regra respeitam o contrato da classe base
+- **DIP**: serviços dependem das abstrações `Regra` e `NotificacaoService`, não das implementações concretas
+
+---
+
+## 💾 Persistência de Dados
+
+O sistema utiliza um **arquivo JSON local** (`sgsa.json`) como banco de dados. Não há dependência de nenhum banco de dados relacional ou SQLite.
+
+O arquivo é gerenciado pelo módulo `infrastructure/db_config.py` através de três funções:
+
+| Função | O que faz |
+|---|---|
+| `init_db()` | Cria o `sgsa.json` com estrutura vazia se não existir |
+| `load_db()` | Lê e retorna todos os dados do arquivo |
+| `save_db(data)` | Sobrescreve o arquivo com os dados atualizados |
+
+O arquivo gerado tem a seguinte estrutura:
+
+```json
+{
+    "alunos": [],
+    "disciplinas": [],
+    "solicitacoes": []
+}
+```
+
+---
+
+## ⚙️ Instalação e Configuração
+
+**Pré-requisitos:**
+- Python 3.8 ou superior
+
+**Passo a passo:**
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/seu-usuario/SGSA.git
+cd SGSA
+
+# 2. Execute o sistema — o arquivo sgsa.json é criado automaticamente
+python main.py
+```
+
+Não é necessário instalar dependências externas. O sistema usa apenas bibliotecas padrão do Python (`json`, `os`, `abc`, `datetime`, `argparse`).
+
+---
+
+## 🖥️ Como Usar — Guia de Comandos (CLI)
+
+O sistema é operado pela linha de comando através do arquivo `main.py`. Os comandos estão divididos em três grupos: **aluno**, **disciplina** e **solicitacao**.
+
+---
+
+### 👤 Comandos de Aluno
+
+#### Cadastrar um aluno
+Registra um novo aluno no sistema com seus dados básicos.
+
+```bash
+python main.py aluno cadastrar --nome "João Silva" --email "joao@inst.edu.br" --mat "2023001" --curso "Sistemas de Informação"
+```
+
+| Argumento | Obrigatório | Descrição |
+|---|---|---|
+| `--nome` | ✅ | Nome completo do aluno |
+| `--email` | ✅ | E-mail institucional |
+| `--mat` | ✅ | Código de matrícula único |
+| `--curso` | ✅ | Nome do curso de graduação |
+
+**Saída esperada:**
+```
+✅ Aluno 'João Silva' guardado com sucesso!
+```
+
+---
+
+#### Listar todos os alunos
+Exibe todos os alunos cadastrados no sistema.
+
+```bash
+python main.py aluno listar
+```
+
+**Saída esperada:**
+```
+📋 Lista de Alunos:
+  - João Silva | Mat: 2023001 | Curso: Sistemas de Informação
+  - Maria Souza | Mat: 2023002 | Curso: Engenharia de Software
+```
+
+---
+
+#### Remover um aluno
+Remove um aluno do sistema pelo código de matrícula.
+
+```bash
+python main.py aluno remover --mat "2023001"
+```
+
+| Argumento | Obrigatório | Descrição |
+|---|---|---|
+| `--mat` | ✅ | Matrícula do aluno a ser removido |
+
+**Saída esperada:**
+```
+✅ Aluno 2023001 removido.
+```
+
+---
+
+### 📖 Comandos de Disciplina
+
+#### Cadastrar uma disciplina
+Registra uma nova disciplina com seu nome e carga horária.
+
+```bash
+python main.py disciplina cadastrar --nome "Cálculo I" --carga 72
+```
+
+| Argumento | Obrigatório | Descrição |
+|---|---|---|
+| `--nome` | ✅ | Nome oficial da disciplina |
+| `--carga` | ✅ | Carga horária total em horas (número inteiro) |
+
+**Saída esperada:**
+```
+✅ Disciplina 'Cálculo I' adicionada.
+```
+
+---
+
+#### Listar todas as disciplinas
+Exibe todas as disciplinas cadastradas.
+
+```bash
+python main.py disciplina listar
+```
+
+**Saída esperada:**
+```
+📚 Lista de Disciplinas:
+  - Cálculo I (72h)
+  - Programação Orientada a Objetos (60h)
+```
+
+---
+
+### 📋 Comandos de Solicitação
+
+As solicitações são validadas automaticamente pelas regras acadêmicas antes de serem registradas. Se alguma regra for violada, a solicitação é negada e uma mensagem clara é exibida.
+
+#### Criar uma solicitação de matrícula
+Solicita a matrícula do aluno em uma disciplina.  
+Regras verificadas automaticamente: pré-requisitos, co-requisitos e limite de carga horária semestral.
+
+```bash
+python main.py solicitacao criar --tipo matricula --mat "2023001" --alvo "Cálculo II"
+```
+
+---
+
+#### Criar uma solicitação de trancamento
+Solicita o trancamento de uma disciplina.  
+Regras verificadas automaticamente: prazo do calendário, limite de trancamentos (máx. 4) e vínculo ativo.
+
+```bash
+# Sem verificação de prazo (prazo assume a data de hoje)
+python main.py solicitacao criar --tipo trancamento --mat "2023001" --alvo "Cálculo I"
+
+# Com prazo do calendário acadêmico definido
+python main.py solicitacao criar --tipo trancamento --mat "2023001" --alvo "Cálculo I" --prazo 2025-10-31
+```
+
+---
+
+#### Criar uma solicitação de colação de grau
+Solicita a colação de grau do aluno.  
+Regras verificadas automaticamente: integralização de todas as disciplinas obrigatórias, mínimo de optativas e ausência de pendências documentais.
+
+```bash
+python main.py solicitacao criar --tipo colacao --mat "2023001" --alvo "Sistemas de Informação"
+```
+
+---
+
+#### Argumentos do comando `criar`
+
+| Argumento | Obrigatório | Descrição |
+|---|---|---|
+| `--tipo` | ✅ | Tipo da solicitação: `matricula`, `trancamento` ou `colacao` |
+| `--mat` | ✅ | Matrícula do aluno solicitante |
+| `--alvo` | ✅ | Nome da disciplina (matrícula/trancamento) ou do curso (colação) |
+| `--prazo` | ❌ | Prazo do calendário acadêmico no formato `YYYY-MM-DD` (usado no trancamento) |
+
+**Saída em caso de sucesso:**
+```
+✅ Solicitação de 'matricula' registrada e validada.
+```
+
+**Saída em caso de violação de regra:**
+```
+❌ [Violação Acadêmica - RegraPreRequisito] Pré-requisito(s) não cumprido(s) para 'Cálculo II': Cálculo I.
+```
+
+---
+
+#### Listar todas as solicitações
+Exibe todas as solicitações registradas no sistema.
+
+```bash
+python main.py solicitacao listar
+```
+
+**Saída esperada:**
+```
+📄 Lista de Solicitações:
+  ID: 1 | Tipo: matricula | Aluno: 2023001 | Alvo: Cálculo II | Status: Aberta
+  ID: 2 | Tipo: trancamento | Aluno: 2023002 | Alvo: Cálculo I | Status: Aberta
+```
+
+---
+
+### 📌 Resumo Rápido de Todos os Comandos
+
+```bash
+# Alunos
+python main.py aluno cadastrar --nome "Nome" --email "email" --mat "MAT" --curso "Curso"
+python main.py aluno listar
+python main.py aluno remover --mat "MAT"
+
+# Disciplinas
+python main.py disciplina cadastrar --nome "Nome" --carga 72
+python main.py disciplina listar
+
+# Solicitações
+python main.py solicitacao criar --tipo matricula   --mat "MAT" --alvo "Disciplina"
+python main.py solicitacao criar --tipo trancamento --mat "MAT" --alvo "Disciplina" [--prazo YYYY-MM-DD]
+python main.py solicitacao criar --tipo colacao     --mat "MAT" --alvo "Curso"
+python main.py solicitacao listar
+```
+
+---
+
+## 🔄 Ciclo de Vida de uma Solicitação
+
+```
+[Criada] → Aberta → Em Análise → Aprovada (Finalizada)
+                               ↘ Rejeitada (Finalizada)
+              ↘ Cancelada (pelo aluno, apenas no estado Aberta)
+```
+
+- O aluno só pode **cancelar** enquanto a solicitação estiver `Aberta`
+- Uma vez `Finalizada` (Aprovada ou Rejeitada), a solicitação é **imutável**
+- Toda mudança de estado dispara uma **notificação automática** ao aluno
+
+---
+
+## 🔐 Regras Acadêmicas Implementadas
+
+| Regra | Aplica-se a | O que verifica |
+|---|---|---|
+| `RegraPreRequisito` | Matrícula | Aprovação em todos os pré-requisitos da disciplina |
+| `RegraCoRequisito` | Matrícula | Matrícula simultânea nos co-requisitos necessários |
+| `RegraLimiteCargaHoraria` | Matrícula | Respeito ao teto de horas semestrais do curso |
+| `RegraPrazo` | Trancamento | Solicitação dentro do prazo do calendário acadêmico |
+| `RegraLimiteTrancamentos` | Trancamento | Máximo de 4 trancamentos por aluno |
+| `RegraVinculoAtivo` | Trancamento | Vínculo do aluno deve ser `Ativo` (não `Trancado` ou `Egresso`) |
+| `RegraElegibilidade` | Colação | 100% das obrigatórias + mínimo de optativas concluídos |
+| `RegraPendenciaDocumentacao` | Colação | Ausência de débitos na biblioteca ou documentos pendentes |
+| `RegraCreditos` | Qualquer | Mínimo geral de horas-crédito aprovadas (configurável) |
 
 ---
 
@@ -225,42 +551,3 @@ Sistema-SGSA/
 | Lucas Daniel Dias de Sousa       | https://github.com/Lucasd11 |
 | Davi Maia Soares                 | https://github.com/davimso |
 | José Luiz de Lima Mendes         | https://github.com/J-Luiz-L |
-
-**Instalação e Configuração**
-__Pré-requisitos:__
-
-Python 3.8+ instalado.
-SQLite3.
-
-**Passo a Passo:**
-Clone o repositório: git clone https://github.com/seu-usuario/SGSA.git
-cd SGSA
-
-__Inicialize o Banco de Dados:__
-O sistema utiliza SQLite. Antes da primeira execução, certifique-se de que a função init_db() do arquivo infrastructure/db_config.py seja chamada para criar as tabelas sgsa.db
-
-**Como Executar:**
-
-Para iniciar o sistema via CLI (Interface de Linha de Comando), execute o arquivo principal:
-python main.py
-
-**Exemplos de Uso (Snippet de Código):**
-Abaixo, um exemplo de como o sistema pode ser utilizado programaticamente:
-from infrastructure.db_config import init_db
-from application.solicitacao_service import SolicitacaoService
-from domain.aluno import Aluno
-from domain.curso import Curso
-
-# 1. Inicializa o banco
-init_db()
-
-# 2. Instancia objetos de domínio
-curso_si = Curso("Sistemas de Informação")
-aluno = Aluno("João Silva", "joao@email.com", "2023001", curso_si)
-
-# 3. Usa o serviço para criar uma solicitação (Pattern: Factory)
-service = SolicitacaoService()
-solicitacao = service.criar_solicitacao("trancamento", aluno, curso_si)
-
-print(f"Solicitação de {solicitacao.__class__.__name__} criada com sucesso!")
-

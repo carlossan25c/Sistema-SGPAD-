@@ -1,27 +1,58 @@
+# domain/solicitacao_colacao.py
+"""
+Módulo que representa o pedido de colação de grau (formatura).
+
+A colação de grau é a solicitação mais exigente do sistema: requer que
+o aluno tenha integralizado 100% das disciplinas obrigatórias, cumprido
+o mínimo de optativas e não possua nenhuma pendência documental ou
+de biblioteca em aberto.
+"""
+
 from domain.solicitacao import Solicitacao
+
 
 class SolicitacaoColacao(Solicitacao):
     """
-    Representa um pedido formal de colação de grau (formatura) realizado por um aluno.
-    Esta classe estende a funcionalidade básica de 'Solicitacao' para o contexto de conclusão de curso.
-    """
-    def __init__(self, aluno, curso):
-        super().__init__(aluno)
-        self._curso = curso
-        """
-        Inicializa uma solicitação de colação de grau.
-        
-        :param aluno: Instância da classe Aluno que está a requerer a formatura.
-        :param curso: Instância da classe Curso na qual o aluno deseja graduar-se.
-        """
+    Pedido formal de colação de grau (formatura) realizado pelo aluno.
 
-    def validar(self):
-        return True
+    Esta solicitação é vinculada ao Curso do aluno (não a uma disciplina
+    específica) e está sujeita às regras de integralização curricular
+    e de pendências documentais.
+
+    Herança:
+        Solicitacao → SolicitacaoColacao.
+
+    Regras de validação aplicáveis (Strategy):
+        - RegraElegibilidade: verifica se o aluno concluiu todas as
+                              disciplinas obrigatórias e o mínimo de
+                              optativas/atividades complementares
+                              exigido pelo curso.
+        - RegraPendenciaDocumentacao: nega a solicitação se houver
+                                      débitos na biblioteca ou
+                                      documentos de registro civil
+                                      pendentes.
+
+    Atributo herdado relevante:
+        curso: Objeto Curso no qual o aluno deseja colar grau.
+               Fornecido via super().__init__() com curso=curso.
+
+    Exemplo de uso:
+        >>> sol = SolicitacaoColacao(aluno, aluno.curso)
+        >>> service.aplicar_regras(sol, [
+        ...     RegraElegibilidade(),
+        ...     RegraPendenciaDocumentacao()
+        ... ])
     """
-        Verifica se o aluno cumpre os requisitos para colar grau.
-        
-        Nota: Na implementação atual, retorna sempre True por padrão, mas deve ser 
-        expandida para integrar com a lógica de regras (Strategy) do sistema.
-        
-        :return: bool (True se elegível).
+
+    def __init__(self, aluno, curso):
         """
+        Inicializa o pedido de colação de grau vinculado ao curso.
+
+        :param aluno: Objeto Aluno que deseja colar grau.
+                      Deve ter integralizado o currículo e não ter
+                      pendências — verificado pelas regras de validação.
+        :param curso: Objeto Curso no qual o aluno pretende graduar-se.
+                      Em geral, deve ser o mesmo curso ao qual o aluno
+                      está vinculado (aluno.curso).
+        """
+        super().__init__(aluno, curso=curso)
