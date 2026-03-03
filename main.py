@@ -9,21 +9,12 @@ suporta subcomandos específicos (cadastrar, listar, remover, criar).
 Ao criar solicitações, as regras de negócio correspondentes ao tipo são
 aplicadas automaticamente antes de persistir. Qualquer violação é capturada
 e exibida ao usuário com uma mensagem clara.
-
-Uso básico:
-    python main.py aluno cadastrar --nome "João" --email "j@email.com"
-                                   --mat "001" --curso "ADS"
-    python main.py aluno listar
-    python main.py disciplina cadastrar --nome "Cálculo I" --carga 72
-    python main.py solicitacao criar --tipo matricula --mat "001"
-                                     --alvo "Cálculo I"
-    python main.py solicitacao criar --tipo trancamento --mat "001"
-                                     --alvo "Cálculo I"
-                                     --prazo 2025-10-31
 """
 
 import argparse
 import datetime
+import time
+import sys
 
 from infrastructure.db_config import init_db
 from infrastructure.repositorio_aluno import RepositorioAluno
@@ -49,8 +40,6 @@ from rules.regra_pendencia_documentacao import RegraPendenciaDocumentacao
 
 
 # Mapeamento de regras padrão por tipo de solicitação.
-# Permite que o main aplique as regras corretas sem precisar conhecer
-# os detalhes de cada tipo — basta consultar este dicionário.
 REGRAS_POR_TIPO = {
     "matricula": [
         RegraPreRequisito(),
@@ -70,17 +59,7 @@ REGRAS_POR_TIPO = {
 
 
 def setup_argparse() -> argparse.ArgumentParser:
-    """
-    Configura e retorna o parser da interface de linha de comando.
-
-    Define a estrutura hierárquica de comandos do SGSA:
-      - aluno: cadastrar, listar, remover
-      - disciplina: cadastrar, listar
-      - solicitacao: criar, listar
-
-    :return: ArgumentParser configurado com todos os subcomandos e
-             argumentos necessários.
-    """
+    """Configura e retorna o parser da interface de linha de comando."""
     parser = argparse.ArgumentParser(
         description="SGSA - Sistema de Gestão Académica (Versão JSON)"
     )
@@ -139,17 +118,55 @@ def setup_argparse() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> None:
-    """
-    Função principal que inicializa o sistema e executa o comando solicitado.
+def buscar_disciplina_por_nome(repo_disc, nome: str):
+    """Busca uma disciplina no repositório pelo nome."""
+    for d in repo_disc.listar():
+        if d[0].lower() == nome.lower():
+            return Disciplina(nome=d[0], carga_horaria=d[1])
+    return None
 
-    Fluxo de execução:
-      1. Inicializa o banco de dados JSON (init_db).
-      2. Faz o parse dos argumentos de linha de comando.
-      3. Instancia os repositórios e serviços necessários.
-      4. Executa a ação correspondente ao comando e subcomando informados.
-      5. Captura ViolacaoRegraAcademicaError e exibe mensagem amigável.
-    """
+
+def exibir_barra_progresso(duracao: int = 3, mensagem: str = "Processando"):
+    """Exibe uma barra de progresso animada no terminal."""
+    passos = 30
+    tempo_por_passo = duracao / passos
+    
+    print(f"\n⏳ {mensagem}...")
+    for i in range(passos + 1):
+        porcentagem = (i / passos) * 100
+        barra = "█" * i + "░" * (passos - i)
+        sys.stdout.write(f"\r[{barra}] {porcentagem:.0f}%")
+        sys.stdout.flush()
+        time.sleep(tempo_por_passo)
+    
+    print("\n")
+
+
+def simular_fluxo_solicitacao(sol, service, repo_sol, tipo: str):
+    """Simula o fluxo de processamento com transição de estados."""
+    print(f"\n📋 Status inicial: {sol.status}")
+    
+    exibir_barra_progresso(duracao=3, mensagem="Analisando solicitação no setor acadêmico")
+    
+    try:
+        sol.avancar()
+        print(f"✅ Status atualizado: {sol.status}")
+        
+        exibir_barra_progresso(duracao=2, mensagem="Finalizando análise")
+        
+        sol.avancar()
+        print(f"✅ Status atualizado: {sol.status}")
+        
+    except Exception as e:
+        print(f"⚠️ Não foi possível avançar o estado: {e}")
+        return
+    
+    repo_sol.adicionar(sol, tipo)
+    print(f"\n✅ Solicitação de '{tipo}' registrada com status final: {sol.status}")
+
+
+def main() -> None:
+    """Função principal que inicializa o sistema e executa o comando."""
     init_db()
     parser = setup_argparse()
     args = parser.parse_args()
@@ -185,17 +202,26 @@ def main() -> None:
         if args.subcommand == "criar":
             aluno_obj = Aluno("Estudante", "email@sgsa.com", args.mat, Curso("Geral"))
 
-            # Parâmetros extras específicos por tipo
+            alvo_obj = None
+            if args.tipo in ["matricula", "trancamento"]:
+                alvo_obj = buscar_disciplina_por_nome(repo_disc, args.alvo)
+                if not alvo_obj:
+                    print(f"❌ Disciplina '{args.alvo}' não encontrada no catálogo.")
+                    return
+            elif args.tipo == "colacao":
+                alvo_obj = Curso(args.alvo)
+
             kwargs = {}
             if args.tipo == "trancamento" and args.prazo:
                 kwargs["prazo"] = datetime.date.fromisoformat(args.prazo)
 
             try:
-                sol = service.criar_solicitacao(args.tipo, aluno_obj, args.alvo, **kwargs)
+                sol = service.criar_solicitacao(args.tipo, aluno_obj, alvo_obj, **kwargs)
                 regras = REGRAS_POR_TIPO.get(args.tipo, [])
                 service.aplicar_regras(sol, regras)
-                repo_sol.adicionar(sol, args.tipo)
-                print(f"✅ Solicitação de '{args.tipo}' registrada e validada.")
+                
+                simular_fluxo_solicitacao(sol, service, repo_sol, args.tipo)
+                
             except ViolacaoRegraAcademicaError as e:
                 print(f"❌ {e}")
 

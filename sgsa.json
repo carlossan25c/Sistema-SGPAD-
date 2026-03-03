@@ -11,6 +11,12 @@
             "email": "jc123@aluno.ufca.edu.br",
             "matricula": "606060",
             "curso": "educação fisica"
+        },
+        {
+            "nome": "Maria Silva",
+            "email": "maria.silva@exemplo.com",
+            "matricula": "2024001",
+            "curso": "Engenharia de Software"
         }
     ],
     "disciplinas": [
@@ -47,6 +53,30 @@
             "aluno_id": "606060",
             "status": "Aberta",
             "alvo": "N/A"
+        },
+        {
+            "id": 4,
+            "protocolo": "S/P",
+            "tipo": "matricula",
+            "aluno_id": "606060",
+            "status": "Aberta",
+            "alvo": "Anatomia"
+        },
+        {
+            "id": 5,
+            "protocolo": "S/P",
+            "tipo": "matricula",
+            "aluno_id": "606060",
+            "status": "Aprovada",
+            "alvo": "Anatomia"
+        },
+        {
+            "id": 6,
+            "protocolo": "S/P",
+            "tipo": "matricula",
+            "aluno_id": "2024001",
+            "status": "Aprovada",
+            "alvo": "Introdução a Programação"
         }
     ]
 }

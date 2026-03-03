@@ -105,6 +105,12 @@ class EstadoAberta(EstadoSolicitacao):
         print("[Estado] Solicitação avançou para 'Em Análise'.")
         solicitacao._estado = EstadoEmAnalise()
         solicitacao.status = "Em Análise"
+    
+    def executar(self, solicitacao) -> None:
+        """
+        Alias para avancar() — mantém compatibilidade com testes.
+        """
+        self.avancar(solicitacao)
 
     def cancelar(self, solicitacao) -> None:
         """
@@ -151,6 +157,12 @@ class EstadoEmAnalise(EstadoSolicitacao):
         print("[Estado] Solicitação finalizada e aprovada.")
         solicitacao._estado = EstadoFinalizada()
         solicitacao.status = "Aprovada"
+    
+    def executar(self, solicitacao) -> None:
+        """
+        Alias para avancar() — mantém compatibilidade com testes.
+        """
+        self.avancar(solicitacao)
 
     def cancelar(self, solicitacao) -> None:
         """
@@ -187,6 +199,12 @@ class EstadoFinalizada(EstadoSolicitacao):
         :raises TransicaoEstadoInvalidaError: sempre.
         """
         raise TransicaoEstadoInvalidaError("Finalizada", "avancar")
+    
+    def executar(self, solicitacao) -> None:
+        """
+        Alias para avancar() — mantém compatibilidade com testes.
+        """
+        self.avancar(solicitacao)
 
     def cancelar(self, solicitacao) -> None:
         """
