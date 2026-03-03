@@ -1,82 +1,96 @@
 {
     "alunos": [
         {
-            "nome": "joao kleber",
-            "email": "jkk@aluno.ufca.edu.br ",
-            "matricula": "151515",
-            "curso": "ADS"
-        },
-        {
-            "nome": "joao carlos",
-            "email": "jc123@aluno.ufca.edu.br",
-            "matricula": "606060",
-            "curso": "educação fisica"
-        },
-        {
-            "nome": "Maria Silva",
-            "email": "maria.silva@exemplo.com",
-            "matricula": "2024001",
+            "nome": "Carlos Mendes",
+            "email": "carlos@sgsa.edu.br",
+            "matricula": "MAT001",
             "curso": "Engenharia de Software"
+        },
+        {
+            "nome": "Fernanda Costa",
+            "email": "fernanda@sgsa.edu.br",
+            "matricula": "MAT002",
+            "curso": "Engenharia de Software"
+        },
+        {
+            "nome": "Lucas Alves",
+            "email": "lucas@sgsa.edu.br",
+            "matricula": "MAT003",
+            "curso": "Engenharia de Software"
+        },
+        {
+            "nome": "Beatriz Lima",
+            "email": "beatriz@sgsa.edu.br",
+            "matricula": "MAT004",
+            "curso": "Engenharia de Software"
+        },
+        {
+            "nome": "Roberto Nunes",
+            "email": "roberto@sgsa.edu.br",
+            "matricula": "TRA001",
+            "curso": "Engenharia de Software"
+        },
+        {
+            "nome": "Aline Ferreira",
+            "email": "aline@sgsa.edu.br",
+            "matricula": "COL001",
+            "curso": "ADS"
         }
     ],
     "disciplinas": [
         {
-            "nome": "Introdução a Programação",
+            "nome": "Programação Orientada a Objetos",
+            "carga_horaria": 60
+        },
+        {
+            "nome": "Cálculo I",
             "carga_horaria": 72
         },
         {
-            "nome": "Anatomia",
+            "nome": "Cálculo II",
             "carga_horaria": 72
+        },
+        {
+            "nome": "Física Teórica",
+            "carga_horaria": 60
+        },
+        {
+            "nome": "Laboratório de Física",
+            "carga_horaria": 30
+        },
+        {
+            "nome": "Projeto de Sistemas",
+            "carga_horaria": 120
+        },
+        {
+            "nome": "Banco de Dados",
+            "carga_horaria": 60
+        },
+        {
+            "nome": "TCC",
+            "carga_horaria": 80
+        },
+        {
+            "nome": "POO",
+            "carga_horaria": 60
         }
     ],
     "solicitacoes": [
         {
             "id": 1,
-            "protocolo": "S/P",
+            "protocolo": "SGSA-6DA19447",
             "tipo": "matricula",
-            "aluno_id": "606060",
-            "status": "Aberta",
-            "alvo": "N/A"
+            "aluno_id": "MAT001",
+            "status": "Aprovada",
+            "alvo": "Programação Orientada a Objetos"
         },
         {
             "id": 2,
-            "protocolo": "S/P",
-            "tipo": "trancamento",
-            "aluno_id": "606060",
-            "status": "Aberta",
-            "alvo": "N/A"
-        },
-        {
-            "id": 3,
-            "protocolo": "S/P",
-            "tipo": "colacao",
-            "aluno_id": "606060",
-            "status": "Aberta",
-            "alvo": "N/A"
-        },
-        {
-            "id": 4,
-            "protocolo": "S/P",
+            "protocolo": "SGSA-6AF45EF6",
             "tipo": "matricula",
-            "aluno_id": "606060",
-            "status": "Aberta",
-            "alvo": "Anatomia"
-        },
-        {
-            "id": 5,
-            "protocolo": "S/P",
-            "tipo": "matricula",
-            "aluno_id": "606060",
+            "aluno_id": "MAT002",
             "status": "Aprovada",
-            "alvo": "Anatomia"
-        },
-        {
-            "id": 6,
-            "protocolo": "S/P",
-            "tipo": "matricula",
-            "aluno_id": "2024001",
-            "status": "Aprovada",
-            "alvo": "Introdução a Programação"
+            "alvo": "Cálculo II"
         }
     ]
 }

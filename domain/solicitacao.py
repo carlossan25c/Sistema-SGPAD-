@@ -17,6 +17,8 @@ class Solicitacao:
         # Estado inicial
         self._estado = EstadoAberta()
         self.status = self._estado.nome()
+        # Protocolo único gerado no momento da persistência
+        self.protocolo = "S/P"
         # Lista de observadores (padrão Observer)
         self._observadores = []
 
