@@ -87,6 +87,10 @@ def setup_argparse() -> argparse.ArgumentParser:
     cad.add_argument("--email", required=True, help="E-mail institucional")
     cad.add_argument("--mat", required=True, help="Código de matrícula único")
     cad.add_argument("--curso", required=True, help="Nome do curso")
+    cad.add_argument("--limite-horas", type=int, default=360,
+                     help="Limite de carga horária semestral do curso (padrão: 360h)")
+    cad.add_argument("--min-optativas", type=int, default=0,
+                     help="Mínimo de horas optativas para colação (padrão: 0h)")
 
     aluno_sub.add_parser("listar", help="Listar todos os alunos cadastrados")
 
@@ -101,6 +105,12 @@ def setup_argparse() -> argparse.ArgumentParser:
     cad_d.add_argument("--nome", required=True, help="Nome da disciplina")
     cad_d.add_argument("--carga", type=int, required=True,
                        help="Carga horária em horas (ex: 72)")
+    cad_d.add_argument("--pre-req", default=None,
+                       help="Nome do pré-requisito (disciplina que deve ser cursada antes)")
+    cad_d.add_argument("--co-req", default=None,
+                       help="Nome do co-requisito (disciplina que deve ser cursada simultaneamente)")
+    cad_d.add_argument("--optativa", action="store_true",
+                       help="Marca a disciplina como optativa (padrão: obrigatória)")
 
     disc_sub.add_parser("listar", help="Listar todas as disciplinas cadastradas")
 
@@ -125,6 +135,12 @@ def setup_argparse() -> argparse.ArgumentParser:
         help="Prazo do calendário acadêmico no formato YYYY-MM-DD "
              "(obrigatório para trancamento com verificação de prazo)"
     )
+    criar.add_argument(
+        "--carga-atual",
+        type=int,
+        default=0,
+        help="Carga horária já matriculada no semestre atual (para verificação de limite)"
+    )
 
     sol_sub.add_parser("listar", help="Listar todas as solicitações registradas")
 
@@ -137,15 +153,63 @@ def setup_argparse() -> argparse.ArgumentParser:
     return parser
 
 
-def buscar_disciplina_por_nome(repo_disc, nome: str):
-    """Busca uma disciplina no repositório pelo nome."""
-    for d in repo_disc.listar():
-        if d[0].lower() == nome.lower():
-            return Disciplina(nome=d[0], carga_horaria=d[1])
-    return None
+def reconstruir_disciplina(repo_disc: RepositorioDisciplina, nome: str) -> Disciplina:
+    """
+    Reconstrói um objeto Disciplina completo a partir do banco de dados,
+    incluindo pré-requisitos e co-requisitos.
+
+    :param repo_disc: Instância de RepositorioDisciplina.
+    :param nome: Nome da disciplina a reconstruir.
+    :return: Objeto Disciplina completo, ou None se não encontrado.
+    """
+    dados = repo_disc.buscar_por_nome(nome)
+    if dados is None:
+        return None
+
+    disc = Disciplina(
+        nome=dados['nome'],
+        carga_horaria=dados['carga_horaria'],
+        obrigatoria=dados.get('obrigatoria', True)
+    )
+
+    # Reconstrói pré-requisitos
+    for pre_nome in dados.get('pre_requisitos', []):
+        pre_dados = repo_disc.buscar_por_nome(pre_nome)
+        if pre_dados:
+            pre_disc = Disciplina(
+                nome=pre_dados['nome'],
+                carga_horaria=pre_dados['carga_horaria'],
+                obrigatoria=pre_dados.get('obrigatoria', True)
+            )
+            disc.adicionar_pre_requisito(pre_disc)
+
+    # Reconstrói co-requisitos
+    for co_nome in dados.get('co_requisitos', []):
+        co_dados = repo_disc.buscar_por_nome(co_nome)
+        if co_dados:
+            co_disc = Disciplina(
+                nome=co_dados['nome'],
+                carga_horaria=co_dados['carga_horaria'],
+                obrigatoria=co_dados.get('obrigatoria', True)
+            )
+            disc.adicionar_co_requisito(co_disc)
+
+    return disc
 
 
-def buscar_aluno_por_matricula(repo_aluno, matricula: str):
+def buscar_disciplina_por_nome(repo_disc: RepositorioDisciplina, nome: str) -> Disciplina:
+    """
+    Busca uma disciplina no repositório pelo nome, reconstruindo-a
+    completamente com pré-requisitos e co-requisitos.
+
+    :param repo_disc: Instância de RepositorioDisciplina.
+    :param nome: Nome da disciplina a buscar.
+    :return: Objeto Disciplina completo, ou None se não encontrado.
+    """
+    return reconstruir_disciplina(repo_disc, nome)
+
+
+def buscar_aluno_por_matricula(repo_aluno: RepositorioAluno, matricula: str) -> Aluno:
     """
     Busca os dados de um aluno no repositório pela matrícula.
 
@@ -154,9 +218,13 @@ def buscar_aluno_por_matricula(repo_aluno, matricula: str):
     :return: Objeto Aluno reconstruído a partir do JSON, ou None se não encontrado.
     """
     for registro in repo_aluno.listar():
-        # registro: (nome, email, matricula, curso)
+        # registro: (nome, email, matricula, curso, limite_horas, min_optativas)
         if registro[2] == matricula:
-            curso = Curso(registro[3])
+            limite_horas = registro[4] if len(registro) > 4 else 360
+            min_optativas = registro[5] if len(registro) > 5 else 0
+            curso = Curso(registro[3],
+                          limite_horas_semestrais=limite_horas,
+                          min_horas_optativas=min_optativas)
             return Aluno(registro[0], registro[1], registro[2], curso)
     return None
 
@@ -539,7 +607,12 @@ def main() -> None:
 
     if args.command == "aluno":
         if args.subcommand == "cadastrar":
-            aluno = Aluno(args.nome, args.email, args.mat, Curso(args.curso))
+            limite_horas = getattr(args, 'limite_horas', 360) or 360
+            min_optativas = getattr(args, 'min_optativas', 0) or 0
+            curso_obj = Curso(args.curso,
+                              limite_horas_semestrais=limite_horas,
+                              min_horas_optativas=min_optativas)
+            aluno = Aluno(args.nome, args.email, args.mat, curso_obj)
             repo_aluno.adicionar(aluno)
             print(f"✅ Aluno '{args.nome}' cadastrado com sucesso! (UUID: {aluno.id})")
         elif args.subcommand == "listar":
@@ -555,16 +628,50 @@ def main() -> None:
 
     elif args.command == "disciplina":
         if args.subcommand == "cadastrar":
-            repo_disc.adicionar(Disciplina(args.nome, args.carga))
+            obrigatoria = not getattr(args, 'optativa', False)
+            disc = Disciplina(args.nome, args.carga, obrigatoria=obrigatoria)
+            repo_disc.adicionar(disc)
+
+            # Processa pré-requisito se informado
+            pre_req_nome = getattr(args, 'pre_req', None)
+            if pre_req_nome:
+                pre_dados = repo_disc.buscar_por_nome(pre_req_nome)
+                if pre_dados:
+                    db_pre_reqs = repo_disc.buscar_por_nome(args.nome).get('pre_requisitos', [])
+                    if pre_req_nome not in db_pre_reqs:
+                        db_pre_reqs.append(pre_req_nome)
+                    repo_disc.atualizar_pre_requisitos(args.nome, db_pre_reqs)
+                    print(f"   Pré-requisito '{pre_req_nome}' vinculado.")
+                else:
+                    print(f"   ⚠️  Pré-requisito '{pre_req_nome}' não encontrado no catálogo.")
+
+            # Processa co-requisito se informado
+            co_req_nome = getattr(args, 'co_req', None)
+            if co_req_nome:
+                co_dados = repo_disc.buscar_por_nome(co_req_nome)
+                if co_dados:
+                    db_co_reqs = repo_disc.buscar_por_nome(args.nome).get('co_requisitos', [])
+                    if co_req_nome not in db_co_reqs:
+                        db_co_reqs.append(co_req_nome)
+                    repo_disc.atualizar_co_requisitos(args.nome, db_co_reqs)
+                    print(f"   Co-requisito '{co_req_nome}' vinculado.")
+                else:
+                    print(f"   ⚠️  Co-requisito '{co_req_nome}' não encontrado no catálogo.")
+
             print(f"✅ Disciplina '{args.nome}' ({args.carga}h) adicionada.")
+
         elif args.subcommand == "listar":
-            disciplinas = repo_disc.listar()
+            disciplinas = repo_disc.listar_completo()
             if not disciplinas:
                 print("  Nenhuma disciplina cadastrada.")
             else:
                 print("\n📚 Lista de Disciplinas:")
                 for d in disciplinas:
-                    print(f"  - {d[0]} ({d[1]}h)")
+                    tipo = "Obrigatória" if d.get('obrigatoria', True) else "Optativa"
+                    pre_reqs = ", ".join(d.get('pre_requisitos', [])) or "nenhum"
+                    co_reqs = ", ".join(d.get('co_requisitos', [])) or "nenhum"
+                    print(f"  - {d['nome']} ({d['carga_horaria']}h) | {tipo} "
+                          f"| Pré-req: {pre_reqs} | Co-req: {co_reqs}")
 
     elif args.command == "solicitacao":
         if args.subcommand == "criar":
@@ -577,6 +684,7 @@ def main() -> None:
 
             alvo_obj = None
             if args.tipo in ["matricula", "trancamento"]:
+                # Reconstrói a disciplina com pré/co-requisitos do banco
                 alvo_obj = buscar_disciplina_por_nome(repo_disc, args.alvo)
                 if not alvo_obj:
                     print(f"❌ Disciplina '{args.alvo}' não encontrada no catálogo.")
@@ -596,8 +704,21 @@ def main() -> None:
             alvo_nome = alvo_obj.nome if hasattr(alvo_obj, 'nome') else str(alvo_obj)
             print(f"   Alvo:   {alvo_nome}")
 
+            # Exibe informações de pré/co-requisitos para matrícula
+            if args.tipo == "matricula":
+                pre_reqs = [p.nome for p in alvo_obj.pre_requisitos]
+                co_reqs = [c.nome for c in alvo_obj.co_requisitos]
+                if pre_reqs:
+                    print(f"   Pré-requisitos: {', '.join(pre_reqs)}")
+                if co_reqs:
+                    print(f"   Co-requisitos: {', '.join(co_reqs)}")
+
             try:
                 sol = service.criar_solicitacao(args.tipo, aluno_obj, alvo_obj, **kwargs)
+                # Aplica carga horária atual se informada (para RegraLimiteCargaHoraria)
+                carga_atual = getattr(args, 'carga_atual', 0) or 0
+                if carga_atual > 0 and args.tipo == "matricula":
+                    sol.carga_horaria_semestre_atual = carga_atual
                 regras = REGRAS_POR_TIPO.get(args.tipo, [])
                 service.aplicar_regras(sol, regras)
 

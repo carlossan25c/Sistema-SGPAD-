@@ -60,7 +60,9 @@ class RepositorioAluno:
             "nome": aluno.nome,
             "email": aluno.email,
             "matricula": aluno.matricula,
-            "curso": aluno.curso.nome
+            "curso": aluno.curso.nome,
+            "limite_horas_semestrais": getattr(aluno.curso, 'limite_horas_semestrais', 360),
+            "min_horas_optativas": getattr(aluno.curso, 'min_horas_optativas', 0)
         })
         save_db(db)
 
@@ -77,7 +79,9 @@ class RepositorioAluno:
         """
         db = load_db()
         return [
-            (a['nome'], a['email'], a['matricula'], a['curso'])
+            (a['nome'], a['email'], a['matricula'], a['curso'],
+             a.get('limite_horas_semestrais', 360),
+             a.get('min_horas_optativas', 0))
             for a in db['alunos']
         ]
 
