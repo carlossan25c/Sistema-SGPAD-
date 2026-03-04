@@ -417,18 +417,28 @@ O sistema é operado pela linha de comando através do arquivo `main.py`. Os com
 ### 👤 Comandos de Aluno
 
 #### Cadastrar um aluno
-Registra um novo aluno no sistema com seus dados básicos.
+Registra um novo aluno no sistema com seus dados básicos e configurações acadêmicas do curso.
 
 ```bash
+# Cadastro simples (limites padrão)
 python main.py aluno cadastrar --nome "João Silva" --email "joao@inst.edu.br" --mat "2023001" --curso "Sistemas de Informação"
+
+# Cadastro com configurações personalizadas do curso
+python main.py aluno cadastrar --nome "Beatriz Lima" --email "beatriz@inst.edu.br" --mat "2023002" --curso "Engenharia de Software" --limite-horas 200 --min-optativas 120
 ```
 
-| Argumento | Obrigatório | Descrição |
-|---|---|---|
-| `--nome` | ✅ | Nome completo do aluno |
-| `--email` | ✅ | E-mail institucional |
-| `--mat` | ✅ | Código de matrícula único |
-| `--curso` | ✅ | Nome do curso de graduação |
+| Argumento | Obrigatório | Padrão | Descrição |
+|---|---|---|---|
+| `--nome` | ✅ | — | Nome completo do aluno |
+| `--email` | ✅ | — | E-mail institucional |
+| `--mat` | ✅ | — | Código de matrícula único |
+| `--curso` | ✅ | — | Nome do curso de graduação |
+| `--limite-horas` | ❌ | `360` | Teto máximo de horas que o aluno pode cursar por semestre. Usado pela `RegraLimiteCargaHoraria` ao validar matrículas. |
+| `--min-optativas` | ❌ | `0` | Mínimo de horas em disciplinas optativas que o aluno precisa ter concluído para poder colar grau. Usado pela `RegraElegibilidade`. |
+
+> **Exemplo prático de `--limite-horas`:** Se Beatriz foi cadastrada com `--limite-horas 200` e já tem 100h matriculadas no semestre, o sistema irá negar qualquer nova disciplina com carga horária maior que 100h.
+
+> **Exemplo prático de `--min-optativas`:** Se o aluno foi cadastrado com `--min-optativas 120` e só concluiu 60h de optativas, a solicitação de colação de grau será negada até que o mínimo seja atingido.
 
 **Saída esperada:**
 ```
@@ -474,16 +484,35 @@ python main.py aluno remover --mat "2023001"
 ### 📖 Comandos de Disciplina
 
 #### Cadastrar uma disciplina
-Registra uma nova disciplina com seu nome e carga horária.
+Registra uma nova disciplina com nome, carga horária e vínculos acadêmicos opcionais.
 
 ```bash
+# Disciplina simples, sem restrições
 python main.py disciplina cadastrar --nome "Cálculo I" --carga 72
+
+# Disciplina com pré-requisito (exige aprovação anterior)
+python main.py disciplina cadastrar --nome "Cálculo II" --carga 72 --pre-req "Cálculo I"
+
+# Disciplina com co-requisito (exige matrícula simultânea)
+python main.py disciplina cadastrar --nome "Física Teórica" --carga 60 --co-req "Laboratório de Física"
+
+# Disciplina optativa (não é obrigatória para formação)
+python main.py disciplina cadastrar --nome "Libras" --carga 60 --optativa
 ```
 
-| Argumento | Obrigatório | Descrição |
-|---|---|---|
-| `--nome` | ✅ | Nome oficial da disciplina |
-| `--carga` | ✅ | Carga horária total em horas (número inteiro) |
+| Argumento | Obrigatório | Padrão | Descrição |
+|---|---|---|---|
+| `--nome` | ✅ | — | Nome oficial da disciplina |
+| `--carga` | ✅ | — | Carga horária total em horas (número inteiro) |
+| `--pre-req` | ❌ | `None` | Nome de uma disciplina que o aluno deve ter **concluído com aprovação** antes de se matricular nesta. A disciplina informada precisa já estar cadastrada no sistema. |
+| `--co-req` | ❌ | `None` | Nome de uma disciplina que precisa ser cursada **simultaneamente** a esta (ex: Teoria + Laboratório). A disciplina informada precisa já estar cadastrada no sistema. |
+| `--optativa` | ❌ | `False` | Flag que marca a disciplina como **optativa**. Por padrão toda disciplina é obrigatória. Disciplinas optativas contam para o `--min-optativas` do aluno, mas não bloqueiam a colação se não forem cursadas. |
+
+> **Importante:** `--pre-req` e `--co-req` aceitam apenas um nome por vez. Cadastre a disciplina-requisito **antes** de cadastrar a disciplina que depende dela.
+
+> **Exemplo prático de `--pre-req`:** Se "Cálculo II" foi cadastrada com `--pre-req "Cálculo I"`, o sistema nega a matrícula de qualquer aluno que ainda não tenha sido aprovado em "Cálculo I".
+
+> **Exemplo prático de `--co-req`:** Se "Física Teórica" foi cadastrada com `--co-req "Laboratório de Física"`, o aluno precisa se matricular nas duas ao mesmo tempo (ou já ter aprovação em Lab. de Física) — caso contrário a matrícula é negada.
 
 **Saída esperada:**
 ```
@@ -517,7 +546,11 @@ Solicita a matrícula do aluno em uma disciplina.
 Regras verificadas automaticamente: pré-requisitos, co-requisitos e limite de carga horária semestral.
 
 ```bash
+# Matrícula simples (sem horas anteriores no semestre)
 python main.py solicitacao criar --tipo matricula --mat "2023001" --alvo "Cálculo II"
+
+# Matrícula informando as horas já matriculadas no semestre atual
+python main.py solicitacao criar --tipo matricula --mat "2023001" --alvo "Projeto de Sistemas" --carga-atual 100
 ```
 
 ---
@@ -548,12 +581,15 @@ python main.py solicitacao criar --tipo colacao --mat "2023001" --alvo "Sistemas
 
 #### Argumentos do comando `criar`
 
-| Argumento | Obrigatório | Descrição |
-|---|---|---|
-| `--tipo` | ✅ | Tipo da solicitação: `matricula`, `trancamento` ou `colacao` |
-| `--mat` | ✅ | Matrícula do aluno solicitante |
-| `--alvo` | ✅ | Nome da disciplina (matrícula/trancamento) ou do curso (colação) |
-| `--prazo` | ❌ | Prazo do calendário acadêmico no formato `YYYY-MM-DD` (usado no trancamento) |
+| Argumento | Obrigatório | Padrão | Descrição |
+|---|---|---|---|
+| `--tipo` | ✅ | — | Tipo da solicitação: `matricula`, `trancamento` ou `colacao` |
+| `--mat` | ✅ | — | Matrícula do aluno solicitante (deve estar cadastrado no sistema) |
+| `--alvo` | ✅ | — | Nome da disciplina (matrícula/trancamento) ou do curso (colação) |
+| `--prazo` | ❌ | hoje | Prazo do calendário acadêmico no formato `YYYY-MM-DD`. Usado no trancamento: se a data atual for posterior ao prazo informado, a solicitação é negada. |
+| `--carga-atual` | ❌ | `0` | Total de horas já matriculadas no semestre corrente. Usado na matrícula para verificar se a nova disciplina ultrapassa o limite semestral do curso. Se omitido, assume 0h. |
+
+> **Exemplo prático de `--carga-atual`:** Aluno com limite de 200h no semestre e já possui 100h matriculadas. Ao solicitar matrícula em "Projeto de Sistemas" (120h) com `--carga-atual 100`, o sistema calcula 100+120=220h > 200h e nega a solicitação.
 
 **Saída em caso de sucesso:**
 ```
@@ -588,18 +624,71 @@ python main.py solicitacao listar
 ```bash
 # Alunos
 python main.py aluno cadastrar --nome "Nome" --email "email" --mat "MAT" --curso "Curso"
+python main.py aluno cadastrar --nome "Nome" --email "email" --mat "MAT" --curso "Curso" --limite-horas 200 --min-optativas 120
 python main.py aluno listar
 python main.py aluno remover --mat "MAT"
 
 # Disciplinas
 python main.py disciplina cadastrar --nome "Nome" --carga 72
+python main.py disciplina cadastrar --nome "Cálculo II" --carga 72 --pre-req "Cálculo I"
+python main.py disciplina cadastrar --nome "Física Teórica" --carga 60 --co-req "Lab. Física"
+python main.py disciplina cadastrar --nome "Libras" --carga 60 --optativa
 python main.py disciplina listar
 
 # Solicitações
 python main.py solicitacao criar --tipo matricula   --mat "MAT" --alvo "Disciplina"
+python main.py solicitacao criar --tipo matricula   --mat "MAT" --alvo "Disciplina" --carga-atual 100
 python main.py solicitacao criar --tipo trancamento --mat "MAT" --alvo "Disciplina" [--prazo YYYY-MM-DD]
 python main.py solicitacao criar --tipo colacao     --mat "MAT" --alvo "Curso"
 python main.py solicitacao listar
+
+# Demo automática
+python main.py demo
+```
+
+---
+
+### 🎬 Comando `demo`
+
+Executa automaticamente todos os cenários de aceite e negação de uma só vez, mostrando claramente o resultado de cada um. Ideal para apresentações e validação do sistema.
+
+```bash
+python main.py demo
+```
+
+> **Pré-requisito:** Os alunos e disciplinas precisam estar cadastrados antes de rodar a demo. Use os comandos de cadastro acima primeiro.
+
+**Saída esperada:**
+```
+=================================================================
+  DEMO — CENÁRIOS AUTOMÁTICOS
+=================================================================
+
+  [✅ APROVADO]
+  Cenário : Matrícula simples sem restrições
+
+  [✅ NEGADO corretamente]
+  Cenário : Matrícula com pré-requisito não cumprido
+
+  [✅ NEGADO corretamente]
+  Cenário : Matrícula com co-requisito não atendido
+
+  [✅ NEGADO corretamente]
+  Cenário : Matrícula excedendo carga horária semestral
+
+  [✅ APROVADO]
+  Cenário : Trancamento dentro do prazo
+
+  [✅ NEGADO corretamente]
+  Cenário : Trancamento fora do prazo
+
+  [✅ NEGADO corretamente]
+  Cenário : Colação sem créditos suficientes
+
+  [✅ APROVADO]
+  Cenário : Colação com histórico completo e sem pendências
+
+=================================================================
 ```
 
 ---
