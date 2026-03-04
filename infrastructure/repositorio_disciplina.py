@@ -3,8 +3,7 @@
 Módulo que implementa o repositório de persistência de disciplinas.
 
 Gerencia as operações de leitura e escrita de disciplinas no arquivo JSON,
-seguindo o mesmo padrão Repository utilizado pelos demais repositórios
-do sistema.
+incluindo pré-requisitos, co-requisitos, obrigatoriedade e carga horária.
 """
 
 from infrastructure.db_config import load_db, save_db
@@ -14,56 +13,59 @@ class RepositorioDisciplina:
     """
     Gerencia a persistência de objetos Disciplina no arquivo JSON.
 
-    Responsável por salvar e recuperar os dados básicos das disciplinas
-    (nome e carga horária) no arquivo sgsa.json. Relações como
-    pré-requisitos e co-requisitos não são persistidas nesta versão —
-    elas são configuradas em memória ao inicializar o sistema.
-
-    Padrão aplicado: Repository.
-
-    Princípios SOLID:
-        - SRP: responsabilidade única de persistir e recuperar disciplinas.
-
-    Nota de escopo:
-        Esta implementação não persiste os atributos pre_requisitos,
-        co_requisitos e obrigatoria, que são relações entre objetos.
-        Em uma versão futura, esses vínculos poderiam ser armazenados
-        como listas de nomes ou IDs no JSON.
-
-    Exemplo de uso:
-        >>> repo = RepositorioDisciplina()
-        >>> repo.adicionar(Disciplina("Cálculo I", 72))
-        >>> for d in repo.listar():
-        ...     print(d)  # ('Cálculo I', 72)
+    Persiste todos os atributos relevantes: nome, carga_horaria, obrigatoria,
+    pre_requisitos e co_requisitos (como listas de nomes). Ao carregar,
+    reconstrói os vínculos entre objetos Disciplina automaticamente.
     """
 
     def adicionar(self, disciplina) -> None:
         """
-        Persiste uma nova disciplina no arquivo JSON.
-
-        Salva apenas os campos primitivos da disciplina (nome e
-        carga_horaria), que são suficientes para a persistência básica.
+        Persiste uma disciplina no JSON com todos os seus atributos.
 
         :param disciplina: Objeto Disciplina a ser persistido.
         """
         db = load_db()
+        # Evita duplicata por nome
+        if any(d['nome'] == disciplina.nome for d in db['disciplinas']):
+            print(f"⚠️  Disciplina '{disciplina.nome}' já existe.")
+            return
         db['disciplinas'].append({
             "nome": disciplina.nome,
-            "carga_horaria": disciplina.carga_horaria
+            "carga_horaria": disciplina.carga_horaria,
+            "obrigatoria": disciplina.obrigatoria,
+            "pre_requisitos": [p.nome for p in disciplina.pre_requisitos],
+            "co_requisitos": [c.nome for c in disciplina.co_requisitos],
         })
         save_db(db)
 
     def listar(self) -> list:
         """
-        Retorna todas as disciplinas cadastradas como lista de tuplas.
-
-        Cada tupla contém: (nome, carga_horaria).
-
-        :return: Lista de tuplas (nome, carga_horaria).
-                 Retorna lista vazia se não houver disciplinas cadastradas.
+        Retorna todas as disciplinas como lista de tuplas (nome, carga_horaria).
         """
         db = load_db()
-        return [
-            (d['nome'], d['carga_horaria'])
+        return [(d['nome'], d['carga_horaria']) for d in db['disciplinas']]
+
+    def carregar_todas(self) -> dict:
+        """
+        Carrega todas as disciplinas do JSON e reconstrói os vínculos de
+        pré-requisitos e co-requisitos entre os objetos.
+
+        :return: Dicionário {nome: Disciplina} com todos os objetos reconstruídos.
+        """
+        from domain.disciplina import Disciplina
+        db = load_db()
+        # Primeira passagem: cria todos os objetos sem vínculos
+        disciplinas = {
+            d['nome']: Disciplina(d['nome'], d['carga_horaria'], d.get('obrigatoria', True))
             for d in db['disciplinas']
-        ]
+        }
+        # Segunda passagem: reconstrói os vínculos
+        for d in db['disciplinas']:
+            obj = disciplinas[d['nome']]
+            for pre in d.get('pre_requisitos', []):
+                if pre in disciplinas:
+                    obj.adicionar_pre_requisito(disciplinas[pre])
+            for co in d.get('co_requisitos', []):
+                if co in disciplinas:
+                    obj.adicionar_co_requisito(disciplinas[co])
+        return disciplinas
