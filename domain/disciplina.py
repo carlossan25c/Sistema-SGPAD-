@@ -45,21 +45,30 @@ class Disciplina:
         [Disciplina(nome='Cálculo I', carga_horaria=72)]
     """
 
-    def __init__(self, nome: str, carga_horaria: int, obrigatoria: bool = True):
+    def __init__(self, nome: str = None, carga_horaria: int = None, obrigatoria: bool = True, codigo: str = None):
         """
         Inicializa uma nova disciplina com seus atributos principais.
 
         :param nome: Título oficial da disciplina conforme o catálogo
                      curricular (ex: "Programação Orientada a Objetos").
+                     Se omitido, usa o valor de `codigo`.
         :param carga_horaria: Valor inteiro representando o total de
                               horas-aula da disciplina (ex: 60, 72, 80).
         :param obrigatoria: Indica se a disciplina é obrigatória no
                             currículo. Padrão True. Disciplinas optativas
                             e de atividades complementares devem ser
                             criadas com obrigatoria=False.
+        :param codigo: Código identificador único da disciplina
+                       (ex: "POO001", "MAT01").
         """
-        self.nome = nome
-        self.carga_horaria = carga_horaria
+        # Suporta ambos os estilos de chamada: nome primeiro ou codigo primeiro
+        if nome is None and codigo is not None:
+            self.nome = codigo
+        else:
+            self.nome = nome or codigo or "Sem nome"
+        
+        self.codigo = codigo or nome or "Sem código"
+        self.carga_horaria = carga_horaria or 0
         self.obrigatoria = obrigatoria
         self._pre_requisitos: List["Disciplina"] = []
         self._co_requisitos: List["Disciplina"] = []

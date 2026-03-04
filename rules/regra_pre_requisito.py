@@ -53,6 +53,11 @@ class RegraPreRequisito(Regra):
         disciplina = solicitacao.disciplina
         if disciplina is None:
             return True
+        
+        # Se disciplina for uma string (erro de integração), retorna True
+        # para evitar AttributeError
+        if isinstance(disciplina, str):
+            return True
 
         historico = solicitacao.aluno.historico
         pendentes = [

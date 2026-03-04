@@ -63,3 +63,5 @@ class SolicitacaoMatricula(Solicitacao):
         """
         super().__init__(aluno, disciplina=disciplina)
         self.disciplinas_co_req_solicitadas = disciplinas_co_req_solicitadas or []
+        # Carga horária já matriculada no semestre (consultada por RegraLimiteCargaHoraria)
+        self.carga_horaria_semestre_atual: int = 0

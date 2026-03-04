@@ -6,17 +6,32 @@ O Aluno é o ator central do sistema: é ele quem realiza as solicitações
 acadêmicas (matrícula, trancamento, colação). Esta classe agrega todos
 os dados necessários para as validações: curso, histórico acadêmico
 e pendências documentais.
+
+Herança múltipla (Mixin):
+    Aluno herda de Usuario (abstração conceitual) e de IdentifiableMixin
+    (comportamento transversal de identificação por UUID). O uso do Mixin
+    é consciente e de baixo acoplamento: IdentifiableMixin não carrega
+    lógica de domínio, apenas fornece o atributo _id e a property id,
+    sem criar ambiguidade conceitual.
 """
 
 from domain.curso import Curso
 from domain.historico import Historico
+from domain.usuario import Usuario
+from domain.identifiable_mixin import IdentifiableMixin
 
 
-class Aluno:
+class Aluno(IdentifiableMixin, Usuario):
     """
     Representa um estudante matriculado na instituição.
 
-    Esta classe agrega (composição) as classes Curso e Historico, tornando-se
+    Esta classe combina herança múltipla de forma consciente:
+      - Usuario (ABC): fornece o contrato de nome e e-mail compartilhado
+        por todos os atores do sistema (Aluno, Professor).
+      - IdentifiableMixin: fornece um UUID único para rastreabilidade do
+        objeto em persistência e logs, sem poluir a lógica de domínio.
+
+    Além disso, agrega (composição) as classes Curso e Historico, tornando-se
     a fonte principal de dados consultada pelas regras de validação. Toda
     informação necessária para decidir se uma solicitação pode ser aprovada
     está acessível a partir do objeto Aluno.
@@ -26,16 +41,25 @@ class Aluno:
           acesso controlado por properties, evitando modificações acidentais.
         - pendencias é protegida com métodos dedicados para adicionar e remover.
 
-    Atributos públicos:
-        nome (str): Nome completo do aluno.
-        email (str): E-mail institucional do aluno.
-        historico (Historico): Histórico acadêmico completo (composição).
+    Herança:
+        IdentifiableMixin + Usuario (ABC) → Aluno (concreto). [Herança múltipla]
 
-    Atributos privados:
-        __matricula (str): Código de matrícula único do aluno.
-        __curso (Curso): Curso ao qual o aluno está vinculado.
-        _pendencias (list[str]): Pendências documentais ou de biblioteca
-                                  que bloqueiam a colação de grau.
+    Atributos herdados:
+        nome (str): Nome completo do aluno (via property de Usuario).
+        email (str): E-mail institucional (via property de Usuario).
+        id (str): UUID único do objeto (via property de IdentifiableMixin).
+
+    Atributos próprios:
+        __matricula (str): Código de matrícula único, imutável após criação.
+        __curso (Curso): Curso ao qual o aluno está vinculado (composição).
+        historico (Historico): Histórico acadêmico do aluno (composição).
+        _pendencias (list[str]): Pendências documentais que bloqueiam colação.
+
+    Princípios SOLID:
+        - SRP: responsabilidade única de representar os dados de um estudante.
+        - OCP: novas funcionalidades podem ser adicionadas via Mixins ou
+               subclasses sem modificar esta classe.
+        - LSP: Aluno pode ser usado em qualquer lugar onde Usuario é esperado.
 
     Exemplo de uso:
         >>> curso = Curso("Sistemas de Informação")
@@ -43,6 +67,7 @@ class Aluno:
         >>> aluno.adicionar_pendencia("Débito na biblioteca")
         >>> aluno.tem_pendencias()
         True
+        >>> print(aluno.id)  # UUID gerado pelo IdentifiableMixin
     """
 
     def __init__(self, nome: str, email: str, matricula: str, curso: Curso):
@@ -56,8 +81,8 @@ class Aluno:
         :param curso: Objeto Curso ao qual o aluno está vinculado.
                       Deve ser uma instância válida da classe Curso.
         """
-        self.nome = nome
-        self.email = email
+        # Chama a cadeia MRO: IdentifiableMixin.__init__ → Usuario.__init__
+        super().__init__(nome=nome, email=email)
         self.__matricula = matricula
         self.__curso = curso
         self.historico = Historico()

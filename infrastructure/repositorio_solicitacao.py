@@ -87,11 +87,11 @@ class RepositorioSolicitacao:
         """
         Retorna todas as solicitações persistidas como lista de tuplas.
 
-        Cada tupla contém: (id, tipo, aluno_id, status, alvo).
+        Cada tupla contém: (id, tipo, aluno_id, status, alvo, protocolo).
         Usa dict.get() com None como fallback para tolerar registros
         incompletos no arquivo (compatibilidade retroativa).
 
-        :return: Lista de tuplas (id, tipo, aluno_id, status, alvo).
+        :return: Lista de tuplas (id, tipo, aluno_id, status, alvo, protocolo).
                  Retorna lista vazia se não houver solicitações.
         """
         db = load_db()
@@ -101,7 +101,8 @@ class RepositorioSolicitacao:
                 s.get('tipo'),
                 s.get('aluno_id'),
                 s.get('status'),
-                s.get('alvo')
+                s.get('alvo'),
+                s.get('protocolo', 'S/P')
             )
             for s in db.get('solicitacoes', [])
         ]

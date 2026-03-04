@@ -24,14 +24,20 @@ class RepositorioAluno:
             "email": aluno.email,
             "matricula": aluno.matricula,
             "curso": aluno.curso.nome,
+<<<<<<< HEAD
             "limite_horas_semestrais": aluno.curso.limite_horas_semestrais,
             "min_horas_optativas": aluno.curso.min_horas_optativas,
+=======
+            "limite_horas_semestrais": getattr(aluno.curso, 'limite_horas_semestrais', 360),
+            "min_horas_optativas": getattr(aluno.curso, 'min_horas_optativas', 0)
+>>>>>>> 147dd71905465b27027101eac65fdb6e2035acd2
         })
         save_db(db)
 
     def listar(self) -> list:
         """Retorna lista de tuplas (nome, email, matricula, curso)."""
         db = load_db()
+<<<<<<< HEAD
         return [(a['nome'], a['email'], a['matricula'], a['curso'])
                 for a in db['alunos']]
 
@@ -54,6 +60,14 @@ class RepositorioAluno:
             min_horas_optativas=registro.get('min_horas_optativas', 0),
         )
         return Aluno(registro['nome'], registro['email'], registro['matricula'], curso)
+=======
+        return [
+            (a['nome'], a['email'], a['matricula'], a['curso'],
+             a.get('limite_horas_semestrais', 360),
+             a.get('min_horas_optativas', 0))
+            for a in db['alunos']
+        ]
+>>>>>>> 147dd71905465b27027101eac65fdb6e2035acd2
 
     def remover(self, matricula: str) -> None:
         """Remove um aluno pela matrícula."""
@@ -64,4 +78,8 @@ class RepositorioAluno:
             save_db(db)
             print(f"✅ Aluno {matricula} removido.")
         else:
+<<<<<<< HEAD
             print(f"⚠️  Aluno '{matricula}' não encontrado.")
+=======
+            print(f"⚠️ Aluno com matrícula '{matricula}' não encontrado.")
+>>>>>>> 147dd71905465b27027101eac65fdb6e2035acd2
