@@ -35,6 +35,13 @@ class Solicitacao:
     def curso(self):
         """Retorna o curso associado à solicitação."""
         return self._curso
+    
+    @property
+    def estado_atual(self):
+        """
+        Retorna o objeto de estado atual da solicitação.
+        """
+        return self._estado
 
     # ------------------------------------------------------------------
     # State

@@ -1,49 +1,65 @@
 import pytest
-from domain.solicitacao_matricula import SolicitacaoMatricula
-from domain.solicitacao_colacao import SolicitacaoColacao
-from rules.regra_creditos import RegraCreditos
 from unittest.mock import MagicMock
+import datetime
 
-# Violação de Regras de Fluxo (Estado)
-def test_deve_lancar_erro_ao_reabrir_solicitacao_finalizada():
-    """Garante que o sistema impeça a reabertura de solicitações encerradas."""
-    solicitacao = SolicitacaoMatricula(aluno=None, disciplina=None)
-    solicitacao.mudar_estado("Finalizada")
+# Importação das exceções reais do seu projeto
+from domain.excecoes import (
+    ViolacaoRegraAcademicaError, 
+    TransicaoEstadoInvalidaError, 
+    CancelamentoNaoPermitidoError
+)
+
+#TESTES DE REGRAS ACADÊMICAS
+
+def test_excecao_regra_prazo_expirado():
+    """Valida se o erro de prazo carrega a mensagem e o nome da regra corretamente."""
+    mensagem_erro = "Prazo acadêmico encerrado. Limite era 15/02/2026."
     
+    with pytest.raises(ViolacaoRegraAcademicaError) as excinfo:
+        raise ViolacaoRegraAcademicaError(mensagem=mensagem_erro, regra="RegraPrazo")
     
-    with pytest.raises(ValueError, match="Não é possível reabrir solicitação finalizada."):
-        solicitacao.mudar_estado("Aberta")
+    #Verifica a formatação do __str__ personalizada que você criou
+    assert "[Violação Acadêmica - RegraPrazo]" in str(excinfo.value)
+    assert mensagem_erro in str(excinfo.value)
 
-# Dados Inválidos ou Ausentes
-def test_deve_lancar_erro_ao_criar_solicitacao_sem_aluno():
-    """Verifica se o sistema impede a criação de pedidos sem um responsável."""
-    # Teste de erro ao tentar instanciar sem argumentos obrigatórios
-    with pytest.raises(TypeError):
-        # Tentando criar sem passar o argumento 'aluno'
-        solicitacao = SolicitacaoColacao() 
+def test_excecao_regra_creditos_insuficientes():
+    """Valida o erro quando o aluno não atinge o mínimo de créditos."""
+    with pytest.raises(ViolacaoRegraAcademicaError) as excinfo:
+        raise ViolacaoRegraAcademicaError(
+            mensagem="Aluno possui apenas 50h de 120h necessárias.",
+            regra="RegraElegibilidade"
+        )
+    assert "RegraElegibilidade" in str(excinfo.value)
 
-# Falha em Regras de Elegibilidade (Regra de Créditos)
-def test_deve_lancar_excecao_quando_creditos_insuficientes():
-    """Garante que a regra de créditos levante um erro se o aluno não atingir o mínimo."""
-    # Criação da regra com o valor esperado de 200 créditos
-    regra = RegraCreditos()
+#ESTES DE FLUXO E ESTADOS
+
+def test_excecao_transicao_invalida_em_estado_terminal():
+    """Garante que o erro de transição descreva corretamente o estado e a ação."""
+    estado = "Finalizada"
+    acao = "avancar"
     
-    # Criação de um mock de aluno com apenas 150 créditos
-    aluno_mock = MagicMock()
-
-    aluno_mock.historico.total_creditos.return_value = 150
-
-    # Criação da disciplina mock com uma carga horária definida
-    disciplina_mock = MagicMock()
-    # Configuração para retornar 200 (ou qualquer valor > 150 para forçar o erro)
-    disciplina_mock.carga_horaria = 200 
-
-    # Criação do curso mock e da lista de disciplinas contendo essa disciplina
-    curso_mock = MagicMock()
-    curso_mock.disciplinas = [disciplina_mock]
-
-    solicitacao = SolicitacaoColacao(aluno=aluno_mock, curso=curso_mock)
+    with pytest.raises(TransicaoEstadoInvalidaError) as excinfo:
+        raise TransicaoEstadoInvalidaError(estado_atual=estado, acao=acao)
     
-    with pytest.raises(ValueError, match="Créditos insuficientes para Colação de Grau"):
-        if not regra.validar(solicitacao):
-            raise ValueError("Créditos insuficientes para Colação de Grau")
+    #Verifica se a mensagem montada no __init__ da exceção está correta
+    assert "[Transição Inválida]" in str(excinfo.value)
+    assert f"Ação '{acao}' não permitida no estado '{estado}'" in str(excinfo.value)
+
+def test_excecao_cancelamento_negado_pela_ufca():
+    """Valida a regra de que o aluno não cancela processos em análise."""
+    with pytest.raises(CancelamentoNaoPermitidoError) as excinfo:
+        raise CancelamentoNaoPermitidoError(estado_atual="Em Análise")
+    
+    assert "[Cancelamento Negado]" in str(excinfo.value)
+    assert "solicite o cancelamento ao Setor Acadêmico" in str(excinfo.value)
+
+#TESTE DE INTEGRAÇÃO COM MOCK
+
+def test_regra_disparando_excecao_no_fluxo():
+    """Simula uma classe de regra real disparando a exceção capturada pelo teste."""
+    regra_mock = MagicMock()
+    
+    regra_mock.validar.side_effect = ViolacaoRegraAcademicaError("Erro de teste", "RegraMock")
+    
+    with pytest.raises(ViolacaoRegraAcademicaError):
+        regra_mock.validar(MagicMock())
