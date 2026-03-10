@@ -49,148 +49,207 @@ Infrastructure → Repositórios + db_config.py (persistência em JSON)
 
 ```mermaid
 classDiagram
-    %% =========================
-    %% Usuários
-    %% =========================
-    class Usuario {
-        <<abstract>>
-        - nome: str
-        - email: str
-    }
-    class Aluno {
-        - matricula: str
-        - curso: Curso
-        - historico: Historico
-        - pendencias: list
-    }
-    class Professor {
-        - siape: str
-    }
-    Usuario <|-- Aluno
-    Usuario <|-- Professor
 
-    %% =========================
-    %% Domínio Acadêmico
-    %% =========================
-    class Curso {
-        - nome: str
-        - limite_horas_semestrais: int
-        - min_horas_optativas: int
-    }
-    class Disciplina {
-        - nome: str
-        - carga_horaria: int
-        - obrigatoria: bool
-        - pre_requisitos: list
-        - co_requisitos: list
-    }
-    class Historico {
-        + foi_aprovado(disciplina): bool
-        + total_creditos(): int
-        + trancamentos: int
-        + status_vinculo: str
-    }
-    Aluno --> Curso
-    Aluno --> Historico
-    Curso --> Disciplina
-    Historico --> Disciplina
+%% Usuários
+class Usuario {
+    nome: string
+    email: string
+}
 
-    %% =========================
-    %% Solicitações
-    %% =========================
-    class Solicitacao {
-        - aluno: Aluno
-        - status: str
-        + avancar()
-        + cancelar()
-        + rejeitar()
-        + registrar_observador(obs)
-    }
-    class SolicitacaoTrancamento {
-        - data: date
-        - prazo: date
-    }
-    class SolicitacaoMatricula {
-        - disciplinas_co_req_solicitadas: list
-    }
-    class SolicitacaoColacao
-    Solicitacao <|-- SolicitacaoTrancamento
-    Solicitacao <|-- SolicitacaoMatricula
-    Solicitacao <|-- SolicitacaoColacao
-    Solicitacao --> Aluno
+class Aluno {
+    matricula: string
+    pendencias: List
+}
 
-    %% =========================
-    %% Regras (Strategy)
-    %% =========================
-    class Regra {
-        <<interface>>
-        + validar(solicitacao): bool
-    }
-    class RegraPreRequisito
-    class RegraCoRequisito
-    class RegraLimiteCargaHoraria
-    class RegraPrazo
-    class RegraLimiteTrancamentos
-    class RegraVinculoAtivo
-    class RegraElegibilidade
-    class RegraPendenciaDocumentacao
-    class RegraCreditos
-    Regra <|.. RegraPreRequisito
-    Regra <|.. RegraCoRequisito
-    Regra <|.. RegraLimiteCargaHoraria
-    Regra <|.. RegraPrazo
-    Regra <|.. RegraLimiteTrancamentos
-    Regra <|.. RegraVinculoAtivo
-    Regra <|.. RegraElegibilidade
-    Regra <|.. RegraPendenciaDocumentacao
-    Regra <|.. RegraCreditos
+class Professor {
+    siape: string
+}
 
-    %% =========================
-    %% Serviços
-    %% =========================
-    class SolicitacaoService {
-        + criar_solicitacao(tipo, aluno, alvo)
-        + aplicar_regras(solicitacao, regras)
-        + processar(solicitacao, regras)
-    }
-    class NotificacaoService {
-        + atualizar(solicitacao)
-        + notificar_setor(solicitacao)
-    }
-    class RelatorioService {
-        + gerar_relatorio(solicitacoes)
-    }
-    SolicitacaoService --> Solicitacao
-    SolicitacaoService --> Regra
-    NotificacaoService --> Solicitacao
-    RelatorioService --> Solicitacao
+Usuario <|-- Aluno
+Usuario <|-- Professor
 
-    %% =========================
-    %% Infraestrutura
-    %% =========================
-    class RepositorioAluno {
-        + adicionar(aluno)
-        + listar(): list
-        + remover(matricula)
-    }
-    class RepositorioSolicitacao {
-        + adicionar(solicitacao, tipo)
-        + listar(): list
-    }
-    class RepositorioDisciplina {
-        + adicionar(disciplina)
-        + listar(): list
-    }
-    class db_config {
-        + init_db()
-        + load_db(): dict
-        + save_db(data)
-    }
-    RepositorioAluno --> Aluno
-    RepositorioSolicitacao --> Solicitacao
-    RepositorioAluno --> db_config
-    RepositorioSolicitacao --> db_config
-    RepositorioDisciplina --> db_config
+%% Domínio Acadêmico
+class Curso {
+    nome: string
+    limite_horas_semestrais: int
+    min_horas_optativas: int
+}
+
+class Disciplina {
+    nome: string
+    carga_horaria: int
+    obrigatoria: bool
+    pre_requisitos: List
+    co_requisitos: List
+}
+
+class Historico {
+    trancamentos: int
+    status_vinculo: string
+    foi_aprovado(disciplina): bool
+    total_creditos(): int
+}
+
+class Setor {
+    nome: string
+    responsavel: string
+}
+
+Aluno --> Curso
+Aluno --> Historico
+Historico --> Disciplina
+Curso --> Disciplina
+
+%% Padrão State
+class EstadoSolicitacao {
+    avancar(solicitacao)
+    cancelar(solicitacao)
+    rejeitar(solicitacao)
+}
+
+class EstadoAberta
+class EstadoEmAnalise
+class EstadoFinalizada
+class EstadoCancelada
+
+EstadoSolicitacao <|-- EstadoAberta
+EstadoSolicitacao <|-- EstadoEmAnalise
+EstadoSolicitacao <|-- EstadoFinalizada
+EstadoSolicitacao <|-- EstadoCancelada
+
+%% Solicitações
+class Solicitacao {
+    id: int
+    status: string
+    avancar()
+    cancelar()
+    rejeitar()
+    registrar_observador(obs)
+    notificar_observadores()
+}
+
+class SolicitacaoTrancamento {
+    disciplina_alvo: string
+    data: string
+    prazo: string
+}
+
+class SolicitacaoMatricula {
+    disciplina_alvo: string
+    carga_horaria_atual: int
+}
+
+class SolicitacaoColacao {
+    curso_alvo: string
+}
+
+Solicitacao <|-- SolicitacaoTrancamento
+Solicitacao <|-- SolicitacaoMatricula
+Solicitacao <|-- SolicitacaoColacao
+Solicitacao --> Aluno
+Solicitacao --> EstadoSolicitacao
+
+%% Regras
+class Regra {
+    validar(solicitacao): bool
+}
+
+class RegraPreRequisito
+class RegraCoRequisito
+class RegraLimiteCargaHoraria
+class RegraPrazo
+
+class RegraLimiteTrancamentos {
+    limite: int
+}
+
+class RegraVinculoAtivo
+class RegraElegibilidade
+class RegraPendenciaDocumentacao
+
+class RegraCreditos {
+    minimo_creditos: int
+}
+
+Regra <|-- RegraPreRequisito
+Regra <|-- RegraCoRequisito
+Regra <|-- RegraLimiteCargaHoraria
+Regra <|-- RegraPrazo
+Regra <|-- RegraLimiteTrancamentos
+Regra <|-- RegraVinculoAtivo
+Regra <|-- RegraElegibilidade
+Regra <|-- RegraPendenciaDocumentacao
+Regra <|-- RegraCreditos
+
+%% Exceções
+class ViolacaoRegraAcademicaError {
+    mensagem: string
+    regra: string
+}
+
+class TransicaoEstadoInvalidaError {
+    mensagem: string
+}
+
+class CancelamentoNaoPermitidoError {
+    mensagem: string
+}
+
+%% Serviços
+class SolicitacaoService {
+    criar_solicitacao(tipo, aluno, alvo)
+    aplicar_regras(solicitacao, regras)
+    processar(solicitacao, regras)
+}
+
+class NotificacaoService {
+    atualizar(solicitacao)
+    notificar_setor(solicitacao)
+}
+
+class RelatorioService {
+    gerar_relatorio(solicitacoes)
+}
+
+SolicitacaoService ..> Solicitacao
+SolicitacaoService ..> Regra
+SolicitacaoService ..> NotificacaoService
+NotificacaoService ..> Solicitacao
+RelatorioService ..> Solicitacao
+
+%% Infraestrutura
+class DBConfig {
+    init_db()
+    load_db(): dict
+    save_db(data)
+}
+
+class RepositorioAluno {
+    adicionar(aluno)
+    listar(): List
+    buscar(matricula): Aluno
+    remover(matricula)
+}
+
+class RepositorioSolicitacao {
+    adicionar(solicitacao, tipo)
+    listar(): List
+    buscar(id): Solicitacao
+}
+
+class RepositorioDisciplina {
+    adicionar(disciplina)
+    listar(): List
+    buscar(nome): Disciplina
+}
+
+RepositorioAluno --> DBConfig
+RepositorioSolicitacao --> DBConfig
+RepositorioDisciplina --> DBConfig
+
+RepositorioAluno ..> Aluno
+RepositorioSolicitacao ..> Solicitacao
+RepositorioDisciplina ..> Disciplina
 ```
 
 ---
