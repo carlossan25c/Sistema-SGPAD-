@@ -19,6 +19,9 @@ import argparse
 import datetime
 import uuid
 import sys
+import time
+import threading
+import itertools
 
 from infrastructure.db_config import init_db
 from infrastructure.repositorio_aluno import RepositorioAluno
@@ -42,6 +45,110 @@ from rules.regra_vinculo_ativo import RegraVinculoAtivo
 from rules.regra_elegibilidade import RegraElegibilidade
 from rules.regra_pendencia_documentacao import RegraPendenciaDocumentacao
 from rules.regra_creditos import RegraCreditos
+
+
+# ---------------------------------------------------------------------------
+# Animação de carregamento CLI.
+# ---------------------------------------------------------------------------
+
+def _suporta_unicode() -> bool:
+    """Verifica se o terminal suporta UTF-8."""
+    try:
+        return sys.stdout.encoding.lower().replace("-", "") in ("utf8", "utf16", "utf32")
+    except Exception:
+        return False
+
+
+def animacao_verificando_solicitacao(duracao: float = 3.5) -> None:
+    """
+    Exibe uma animação visual impactante de verificação de solicitação no CLI.
+    Dura aproximadamente `duracao` segundos.
+    """
+    unicode_ok = _suporta_unicode()
+
+    BARRA_CHEIA  = "█" if unicode_ok else "#"
+    BARRA_VAZIA  = "░" if unicode_ok else "-"
+    SETA         = "▶" if unicode_ok else ">"
+    CHECK        = "✔" if unicode_ok else "OK"
+    ICONE_SOL    = "◈" if unicode_ok else "*"
+
+    LARGURA_BARRA = 35
+
+    etapas = [
+        (f"  {SETA}  Autenticando solicitação    ", 0.22),
+        (f"  {SETA}  Carregando dados do aluno   ", 0.20),
+        (f"  {SETA}  Verificando pré-requisitos  ", 0.25),
+        (f"  {SETA}  Analisando regras acadêmicas", 0.20),
+        (f"  {SETA}  Consultando histórico        ", 0.18),
+        (f"  {SETA}  Validando carga horária      ", 0.20),
+        (f"  {SETA}  Registrando solicitação      ", 0.22),
+    ]
+
+    # --- cabeçalho ---
+    sys.stdout.write("\n")
+    borda = "═" * 48 if unicode_ok else "=" * 48
+    sys.stdout.write(f"  {borda}\n")
+    sys.stdout.write(f"    {ICONE_SOL}  SGSA — PROCESSANDO SOLICITAÇÃO  {ICONE_SOL}\n")
+    sys.stdout.write(f"  {borda}\n\n")
+    sys.stdout.flush()
+
+    tempo_por_etapa = duracao / len(etapas)
+
+    for label, _ in etapas:
+        passos = 0
+        total_passos = int(tempo_por_etapa / 0.045)
+        total_passos = max(total_passos, 8)
+
+        for i in range(total_passos + 1):
+            progresso = i / total_passos
+            cheias = int(LARGURA_BARRA * progresso)
+            vazias = LARGURA_BARRA - cheias
+            barra = BARRA_CHEIA * cheias + BARRA_VAZIA * vazias
+            pct = int(progresso * 100)
+            sys.stdout.write(f"\r{label}  [{barra}] {pct:>3}%")
+            sys.stdout.flush()
+            time.sleep(0.045)
+
+        sys.stdout.write(f"\r{label}  [{BARRA_CHEIA * LARGURA_BARRA}] {CHECK}\n")
+        sys.stdout.flush()
+
+    # --- rodapé ---
+    sys.stdout.write("\n")
+    sys.stdout.write(f"  {borda}\n")
+    sys.stdout.flush()
+    time.sleep(0.15)
+
+
+class Spinner:
+    """
+    Spinner simples usado em operações rápidas que não usam a animação completa.
+    """
+    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] if _suporta_unicode() \
+             else ["|", "/", "-", "\\"]
+
+    def __init__(self, mensagem: str = "Processando", delay: float = 0.08):
+        self.mensagem = mensagem
+        self.delay = delay
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._spin, daemon=True)
+
+    def _spin(self):
+        for frame in itertools.cycle(self.FRAMES):
+            if self._stop_event.is_set():
+                break
+            sys.stdout.write(f"\r   {frame}  {self.mensagem}...")
+            sys.stdout.flush()
+            time.sleep(self.delay)
+        sys.stdout.write("\r" + " " * (len(self.mensagem) + 10) + "\r")
+        sys.stdout.flush()
+
+    def __enter__(self):
+        self._thread.start()
+        return self
+
+    def __exit__(self, *args):
+        self._stop_event.set()
+        self._thread.join()
 
 
 # ---------------------------------------------------------------------------
@@ -140,9 +247,6 @@ def setup_argparse() -> argparse.ArgumentParser:
     sol_sub.add_parser("listar")
 
     # ---- demo ----
-    subparsers.add_parser("demo", help="Executa todos os cenários de demonstração automaticamente")
-
-    # ---- Grupo: demo ----
     subparsers.add_parser(
         "demo",
         help="Executa cenários de demonstração (aceite e negação de solicitações)"
@@ -712,15 +816,18 @@ def main() -> None:
                     print(f"   Co-requisitos: {', '.join(co_reqs)}")
 
             try:
+                # Animação visual enquanto processa
+                animacao_verificando_solicitacao(duracao=3.5)
+
                 sol = service.criar_solicitacao(args.tipo, aluno_obj, alvo_obj, **kwargs)
-                # Aplica carga horária atual se informada (para RegraLimiteCargaHoraria)
                 carga_atual = getattr(args, 'carga_atual', 0) or 0
                 if carga_atual > 0 and args.tipo == "matricula":
                     sol.carga_horaria_semestre_atual = carga_atual
+
                 regras = REGRAS_POR_TIPO.get(args.tipo, [])
                 service.aplicar_regras(sol, regras)
-
                 status = processar_solicitacao(sol, service, repo_sol, args.tipo, protocolo)
+
                 print(f"\n✅ Solicitação {protocolo} APROVADA!")
                 print(f"   Status final: {status}")
 

@@ -19,6 +19,12 @@ import os
 
 DB_FILE = "sgsa.json"
 
+_ESTRUTURA_PADRAO = {
+    "alunos": [],
+    "disciplinas": [],
+    "solicitacoes": []
+}
+
 
 def init_db() -> None:
     """
@@ -42,12 +48,7 @@ def init_db() -> None:
         # (ou silêncio, se o arquivo já existia)
     """
     if not os.path.exists(DB_FILE):
-        estrutura = {
-            "alunos": [],
-            "disciplinas": [],
-            "solicitacoes": []
-        }
-        save_db(estrutura)
+        save_db(dict(_ESTRUTURA_PADRAO))
         print(f"✅ Ficheiro {DB_FILE} criado com sucesso.")
 
 
@@ -55,9 +56,8 @@ def load_db() -> dict:
     """
     Lê todos os dados do arquivo JSON e retorna como dicionário Python.
 
-    Se o arquivo não existir, chama init_db() automaticamente antes
-    de tentar a leitura, garantindo que a operação nunca falhe por
-    ausência do arquivo.
+    Se o arquivo não existir, estiver vazio ou corrompido, recria-o
+    automaticamente com a estrutura padrão, evitando erros de leitura.
 
     O arquivo é lido com encoding UTF-8 para suporte a caracteres
     especiais (acentos, cedilha, etc.) presentes nos nomes de alunos
@@ -65,13 +65,31 @@ def load_db() -> dict:
 
     :return: Dicionário com as chaves 'alunos', 'disciplinas' e
              'solicitacoes', cada uma contendo uma lista de registros.
-    :raises json.JSONDecodeError: se o arquivo existir mas estiver
-                                  corrompido ou com formato inválido.
     """
     if not os.path.exists(DB_FILE):
         init_db()
+        return dict(_ESTRUTURA_PADRAO)
+
     with open(DB_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        conteudo = f.read().strip()
+
+    # Arquivo vazio ou corrompido: recria com estrutura padrão
+    if not conteudo:
+        dados = dict(_ESTRUTURA_PADRAO)
+        save_db(dados)
+        return dados
+
+    try:
+        dados = json.loads(conteudo)
+        # Garante que todas as chaves obrigatórias existem
+        for chave in _ESTRUTURA_PADRAO:
+            dados.setdefault(chave, [])
+        return dados
+    except json.JSONDecodeError:
+        print(f"⚠️  Arquivo {DB_FILE} corrompido. Recriando com estrutura padrão...")
+        dados = dict(_ESTRUTURA_PADRAO)
+        save_db(dados)
+        return dados
 
 
 def save_db(data: dict) -> None:
