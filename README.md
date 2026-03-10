@@ -90,11 +90,6 @@ class Historico {
     total_creditos(): int
 }
 
-class Setor {
-    nome: string
-    responsavel: string
-}
-
 Aluno --> Curso
 Aluno --> Historico
 Historico --> Disciplina
